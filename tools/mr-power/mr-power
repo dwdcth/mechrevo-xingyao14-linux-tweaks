@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# mr-power — 功耗墙快捷控制（只说瓦数）
+#   mr-power quiet   12W 静音档
+#   mr-power stock   恢复机器默认（按当前 Fn+X 档位）
+#   mr-power <N>     钳制到 N 瓦（5-65）
+#   mr-power info    当前功耗墙
+set -euo pipefail
+
+if [ "$(id -u)" != 0 ]; then exec sudo "$0" "$@"; fi
+# sudo 后 $HOME=/root，按原用户家目录找 mise 安装的 ryzenadj
+USER_HOME=$(getent passwd "${SUDO_USER:-$(id -un 1000)}" | cut -d: -f6)
+RA=$(ls -d "$USER_HOME"/.local/share/mise/installs/github-fly-goat-ryzen-adj/*/ryzenadj 2>/dev/null | sort -V | tail -1)
+[ -x "$RA" ] || { echo "ryzenadj 未安装：mise use -g github:FlyGoat/RyzenAdj" >&2; exit 1; }
+WMI=/usr/local/bin/mechrevo-ctl
+
+clamp() {
+    local w=$1
+    if "$RA" --stapm-limit=$((w*1000)) --slow-limit=$((w*1000)) --fast-limit=$((w*1000)) >/dev/null 2>&1; then
+        echo "已钳制到 ${w}W（恢复：mr-power stock）"
+    else
+        echo "设置失败" >&2
+        exit 1
+    fi
+}
+
+case "${1:-info}" in
+    info)
+        "$RA" --info 2>/dev/null | awk -F'|' '
+            /STAPM LIMIT/    {stapm=$3+0}
+            /PPT LIMIT FAST/ {fast=$3+0}
+            /PPT LIMIT SLOW/ {slow=$3+0}
+            END {printf "当前功耗墙：持续 %gW · 长时 %gW · 短时爆发 %gW\n", stapm, slow, fast}' ;;
+    quiet) clamp 12 ;;
+    stock)
+        mode=$("$WMI" mode 2>/dev/null | tr -dc '0-9')
+        [ -n "$mode" ] || mode=1
+        "$WMI" perf set "$mode" >/dev/null 2>&1
+        echo "已恢复机器默认（当前 Fn+X 档位 $mode）" ;;
+    *[0-9])
+        w=$1
+        [ "$w" -ge 5 ] && [ "$w" -le 65 ] || { echo "瓦数范围 5-65" >&2; exit 1; }
+        clamp "$w" ;;
+    *)
+        sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//' ;;
+esac
