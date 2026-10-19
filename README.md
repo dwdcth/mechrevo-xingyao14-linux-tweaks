@@ -20,6 +20,7 @@
 | 休眠（不砖机） | [docs/hibernation.md](docs/hibernation.md) | shutdown 模式定稿，含 platform 砖机完整证据链与内核源码分析 |
 | 扬声器校正 | [integrations/audio](integrations/audio/INSTALL.md) | 原厂 Nahimic 卷积 IR → EasyEffects，六套场景预设 + Mac 曲线 |
 | NPU 模型推理 | [tools/xrun-rs](tools/xrun-rs/INSTALL.md) | Rust 直调 XRT/Vitis-AI ABI 跑 Windows 效果模型（31fps 人像分割），含模型提取逆向全记录 |
+| WPS 流氓进程治理 | [integrations/wps](integrations/wps/INSTALL.md) | EverythingDaemon 永禁（曾卡死 FUSE 挂载致合盖假死）+ WPS 退出后自动清场常驻进程，[附论坛分享稿](integrations/wps/forum-post.zh.md) |
 
 ## 目录结构
 
@@ -33,7 +34,8 @@
 ├── integrations/
 │   ├── systemd/        # mechrevo-osd / mechrevo-charge / kde-lock-raise / fprintd-release
 │   ├── kde/            # 锁屏指纹 QML 补丁 + pacman hook
-│   └── audio/          # EasyEffects 预设与 IRS
+│   ├── audio/          # EasyEffects 预设与 IRS
+│   └── wps/            # WPS 流氓进程治理（一键脚本 + 论坛分享稿）
 └── NOTICE.md        # 厂商衍生素材（IRS/模型/运行库/固件）的来源与再分发说明
 ```
 
