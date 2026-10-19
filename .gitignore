@@ -1,0 +1,7 @@
+target/
+*.o
+.DS_Store
+# 厂商衍生资产走 GitHub Release，不入 git 树（见 tools/xrun-rs/INSTALL.md）
+tools/xrun-rs/models/*.onnx
+tools/xrun-rs/libs/
+tools/xrun-rs/firmware/
