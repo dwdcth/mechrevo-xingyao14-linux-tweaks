@@ -1,0 +1,84 @@
+{
+  "name": "机械革命原厂-扬声器校正(参数EQ版)",
+  "output": {
+    "blocklist": [],
+    "plugins_order": [
+      "filter",
+      "equalizer"
+    ],
+    "filter": {
+      "state": true,
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": 0.0,
+      "frequency": 110.0,
+      "width": 4.0,
+      "quality": 0.0,
+      "gain": 0.0,
+      "balance": 0.0,
+      "type": "High-pass",
+      "mode": "RLC (BT)",
+      "equal-mode": "IIR",
+      "slope": "x2"
+    },
+    "equalizer": {
+      "state": true,
+      "bypass": false,
+      "mode": "IIR",
+      "num-bands": 5,
+      "input-gain": 0.0,
+      "output-gain": 0.0,
+      "split-channels": false,
+      "band0": {
+        "gain": 3.7,
+        "frequency": 250.0,
+        "width": 300.0,
+        "type": "Bell",
+        "mode": "RLC (BT)",
+        "slope": "x1",
+        "solo": false,
+        "mute": false
+      },
+      "band1": {
+        "gain": -1.2,
+        "frequency": 630.0,
+        "width": 500.0,
+        "type": "Bell",
+        "mode": "RLC (BT)",
+        "slope": "x1",
+        "solo": false,
+        "mute": false
+      },
+      "band2": {
+        "gain": 2.0,
+        "frequency": 1250.0,
+        "width": 800.0,
+        "type": "Bell",
+        "mode": "RLC (BT)",
+        "slope": "x1",
+        "solo": false,
+        "mute": false
+      },
+      "band3": {
+        "gain": -13.5,
+        "frequency": 4000.0,
+        "width": 3300.0,
+        "type": "Bell",
+        "mode": "RLC (BT)",
+        "slope": "x1",
+        "solo": false,
+        "mute": false
+      },
+      "band4": {
+        "gain": 5.4,
+        "frequency": 11000.0,
+        "width": 5000.0,
+        "type": "Bell",
+        "mode": "RLC (BT)",
+        "slope": "x1",
+        "solo": false,
+        "mute": false
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+[Unit]
+Description=Raise the KDE lock screen prompt after resume (fingerprint-ready)
+After=suspend.target suspend-then-hibernate.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+# Fires when suspend.target deactivates, i.e. right after resume.
+ExecStop=/usr/local/bin/kde-lock-raise
+
+[Install]
+WantedBy=suspend.target suspend-then-hibernate.target

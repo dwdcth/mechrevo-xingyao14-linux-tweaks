@@ -1,0 +1,145 @@
+{
+  "output": {
+    "blocklist": [],
+    "plugins_order": [
+      "convolver",
+      "equalizer",
+      "exciter",
+      "limiter"
+    ],
+    "convolver": {
+      "state": true,
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": 6.0,
+      "kernel-name": "mechrevo-star14-nahimic-speaker",
+      "ir-width": 100,
+      "autogain": true
+    },
+    "equalizer": {
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": 4.0,
+      "mode": "IIR",
+      "decramp": "Off",
+      "split-channels": false,
+      "balance": 0.0,
+      "pitch-left": 1.0,
+      "pitch-right": 1.0,
+      "num-bands": 4,
+      "left": {
+        "band0": {
+          "type": "Bell",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": 6,
+          "frequency": 250.0,
+          "q": 1.09,
+          "width": 130.0
+        },
+        "band1": {
+          "type": "Bell",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": 4,
+          "frequency": 1414.0,
+          "q": 0.71,
+          "width": 2000.0
+        },
+        "band2": {
+          "type": "Hi-shelf",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": 4,
+          "frequency": 8500.0,
+          "q": 0.707,
+          "width": 4000.0
+        },
+        "band3": {
+          "type": "Lo-shelf",
+          "mode": "RLC (BT)",
+          "slope": "x2",
+          "solo": false,
+          "mute": false,
+          "gain": 3.0,
+          "frequency": 150.0,
+          "q": 0.707,
+          "width": 100.0
+        }
+      },
+      "right": {
+        "band0": {
+          "type": "Bell",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": 6,
+          "frequency": 250.0,
+          "q": 1.09,
+          "width": 130.0
+        },
+        "band1": {
+          "type": "Bell",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": 4,
+          "frequency": 1414.0,
+          "q": 0.71,
+          "width": 2000.0
+        },
+        "band2": {
+          "type": "Hi-shelf",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": 4,
+          "frequency": 8500.0,
+          "q": 0.707,
+          "width": 4000.0
+        },
+        "band3": {
+          "type": "Lo-shelf",
+          "mode": "RLC (BT)",
+          "slope": "x2",
+          "solo": false,
+          "mute": false,
+          "gain": 3.0,
+          "frequency": 150.0,
+          "q": 0.707,
+          "width": 100.0
+        }
+      }
+    },
+    "exciter": {
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": 0.0,
+      "amount": -12.0,
+      "harmonics": 8.5,
+      "scope": 6000.0,
+      "ceil": 16000.0,
+      "blend": 0.0,
+      "ceil-active": false
+    },
+    "limiter": {
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": 0.0,
+      "lookahead": 5.0,
+      "attack": 2.0,
+      "release": 20.0,
+      "threshold": -1.0,
+      "alr": false
+    }
+  }
+}

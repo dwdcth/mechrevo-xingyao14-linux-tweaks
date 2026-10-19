@@ -1,0 +1,20 @@
+[Unit]
+Description=机械革命 FN键 OSD/功能 (触控板/键盘灯/麦克风/飞行模式)
+After=graphical.target
+
+[Service]
+# dbus-broker 拒绝异 uid 连接用户总线 -> 以用户身份跑;
+# 读 /dev/kmsg (dmesg_restrict=1) 需 CAP_SYSLOG;
+# rfkill 开关无线电需 CAP_NET_ADMIN (DAC 由 /dev/rfkill 的 uaccess ACL 放行)
+User=$USER
+Group=$USER
+AmbientCapabilities=CAP_SYSLOG CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_SYSLOG CAP_NET_ADMIN
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+ExecStart=/usr/local/bin/mechrevo-ctl osd
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

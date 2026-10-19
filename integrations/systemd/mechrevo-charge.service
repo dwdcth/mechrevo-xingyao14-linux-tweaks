@@ -1,0 +1,11 @@
+[Unit]
+Description=星耀14 充电阈值恢复 (80%% 上限, 电池耗尽断电后会被 EC 清零)
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/mechrevo-ctl charge restore 80 100
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

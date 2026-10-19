@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# 锁屏加载即启动认证 + 心跳全程续命 → 任何时候摸电源键指纹直接解锁
+# v4 (2026-10-19): ① Component.onCompleted 设 uiVisible=true（加载即监听）
+#                  ② 心跳 Timer 去掉可见性条件（熄屏后续命；1s 间隔=原厂可见态同强度）
+# 说明：LockScreenUi.qml 属 plasma-desktop 包（不是 plasma-workspace）
+# 拆除 = pacman -U /var/cache/pacman/pkg/plasma-desktop-6.8.0-1.1-x86_64_v4.pkg.tar.zst
+set -euo pipefail
+
+QML=/usr/share/plasma/shells/org.kde.plasma.desktop/contents/lockscreen/LockScreenUi.qml
+
+if [[ ! -f "$QML" ]]; then
+    echo "kde-lock-immediate: $QML not found, skipping" >&2
+    exit 0
+fi
+
+changed=0
+
+# patch 1: 加载即启动认证
+if ! grep -qF 'lockScreenRoot.uiVisible = true;' "$QML"; then
+    if ! grep -qF 'Component.onCompleted: launchAnimation.start();' "$QML"; then
+        echo "kde-lock-immediate: patch-1 目标行缺失，上游结构变化需更新脚本" >&2
+        exit 1
+    fi
+    sed -i 's|^\( *\)Component\.onCompleted: launchAnimation\.start();$|\1Component.onCompleted: {\n\1    launchAnimation.start();\n\1    lockScreenRoot.uiVisible = true;\n\1}|' "$QML"
+    changed=1
+fi
+
+# patch 2: 心跳不随密码框隐藏而停止
+if grep -qF 'running: !authenticator.unlocked && parent.uiVisible' "$QML"; then
+    sed -i 's|running: !authenticator.unlocked \&\& parent.uiVisible$|running: !authenticator.unlocked|' "$QML"
+    changed=1
+elif ! grep -qF 'running: !authenticator.unlocked' "$QML"; then
+    echo "kde-lock-immediate: patch-2 目标行缺失，上游结构变化需更新脚本" >&2
+    exit 1
+fi
+
+if (( changed )); then
+    echo "kde-lock-immediate: patched (v4)"
+fi

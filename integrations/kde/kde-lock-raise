@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -u
+
+# Give kscreenlocker a moment to come up after wake.
+sleep 2
+
+# Pick the active graphical user session.
+session=""
+for s in $(loginctl list-sessions --no-legend | awk '$4 == "seat0" { print $1 }'); do
+    [ "$(loginctl show-session "$s" -p Class --value)" = "user" ] || continue
+    if [ "$(loginctl show-session "$s" -p State --value)" = "active" ]; then
+        session="$s"
+        break
+    fi
+    [ -z "$session" ] && session="$s"
+done
+[ -n "$session" ] || exit 0
+
+user="$(loginctl show-session "$session" -p Name --value)"
+uid="$(id -u "$user")"
+
+runuser -u "$user" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+    dbus-send --session --type=method_call --print-reply \
+    --dest=org.freedesktop.ScreenSaver /ScreenSaver \
+    org.freedesktop.ScreenSaver.SimulateUserActivity >/dev/null 2>&1 || true

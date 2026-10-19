@@ -1,0 +1,73 @@
+{
+  "name": "机械革命原厂-电影",
+  "output": {
+    "blocklist": [],
+    "plugins_order": [
+      "convolver",
+      "equalizer",
+      "reverb"
+    ],
+    "convolver": {
+      "state": true,
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": 0.0,
+      "kernel-name": "mechrevo-star14-nahimic-speaker",
+      "ir-width": 100,
+      "autogain": true
+    },
+    "equalizer": {
+      "state": true,
+      "bypass": false,
+      "mode": "IIR",
+      "num-bands": 3,
+      "input-gain": 0.0,
+      "output-gain": 0.0,
+      "split-channels": false,
+      "band0": {
+        "gain": 4,
+        "frequency": 250.0,
+        "width": 130.0,
+        "type": "Bell",
+        "mode": "RLC (BT)",
+        "slope": "x1",
+        "solo": false,
+        "mute": false
+      },
+      "band1": {
+        "gain": 6,
+        "frequency": 1414.0,
+        "width": 2000.0,
+        "type": "Bell",
+        "mode": "RLC (BT)",
+        "slope": "x1",
+        "solo": false,
+        "mute": false
+      },
+      "band2": {
+        "gain": 0,
+        "frequency": 6000.0,
+        "width": 4000.0,
+        "type": "Hi-Shelf",
+        "mode": "RLC (BT)",
+        "slope": "x1",
+        "solo": false,
+        "mute": false
+      }
+    },
+    "reverb": {
+      "state": true,
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": -10.0,
+      "room-size": "Medium",
+      "decay-time": 1.0,
+      "hf-damp": 5000.0,
+      "pre-delay": 0.0,
+      "bass-cut": 300.0,
+      "treble-cut": 5000.0,
+      "dry-amount": 1.0,
+      "wet-amount": -10.0
+    }
+  }
+}
