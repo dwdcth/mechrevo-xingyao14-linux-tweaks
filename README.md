@@ -56,7 +56,7 @@ cd tools/mechrevo-ctl && cat INSTALL.md
 
 ## 相关项目
 
-- [Mechrevo-Xingyao-14](https://github.com/)——同机型纯技术参考库（寄存器地图/固件考证），与本仓库工具侧互补
+- [YMGPwcca/Mechrevo-Xingyao-14](https://github.com/YMGPwcca/Mechrevo-Xingyao-14)——同机型纯技术参考库（寄存器地图/固件考证），与本仓库工具侧互补
 - [tuxedo-drivers](https://github.com/tuxedocomputers/tuxedo-drivers) / [uniwill-laptop](https://github.com/wer-wolf/uniwill-laptop)——Uniwill 系参考实现
 - [RyzenAdj](https://github.com/flygoat/ryzenadj)——SMU 功耗墙
 - [nikhcevov.me 指纹解锁方案](https://nikhcevov.me/posts/kde-plasma-fingerprint-unlock-immediately)——锁屏补丁的出发点
