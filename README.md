@@ -42,7 +42,7 @@
 ## 快速开始
 
 ```bash
-git clone https://github.com/<你>/mechrevo-xingyao14-linux-tweaks.git
+git clone https://github.com/dwdcth/mechrevo-xingyao14-linux-tweaks.git
 cd mechrevo-xingyao14-linux-tweaks
 # 按需逐件安装，从主工具开始：
 cd tools/mechrevo-ctl && cat INSTALL.md
