@@ -83,7 +83,7 @@ ECMD burst 命令（EC 写操作协议，dsdt.dsl:3668，经 WIBE/WOBE burst 握
 
 - `dsdt.dsl` / `SSDT*.dsl`：全量反编译 ACPI 表（WMAA 调度器 dsdt:4514，辅助方法 dsdt:4125-4355，EC 字段 dsdt:3192-3249/3985-4062）
 - `wqba.bin`：WMI1 的二进制 MOF（FOMB 头，1092B，OEM WMI 类定义，未解码）
-- 驱动备份：`/run/media/$USER/Ventoy/Mechrevo_Drivers/`（核心：`uwacpidriver.inf_amd64_*/UWACPIDriver.sys`）
+- 驱动备份：`<Windows 驱动盘挂载点>/Mechrevo_Drivers/`（核心：`uwacpidriver.inf_amd64_*/UWACPIDriver.sys`）
 
 ## 六、阶段2实测结果（2026-10-16 22:50）
 
@@ -144,7 +144,7 @@ ECMD burst 命令（EC 写操作协议，dsdt.dsl:3668，经 WIBE/WOBE burst 握
 亮度 FN+F1/F2 不走此通道（video bus → amdgpu，原生 OSD）。
 
 **OSD 实现**（`mechrevo-ctl osd` + `/etc/systemd/system/mechrevo-osd.service`）：
-- 服务以 `User=$USER` + `AmbientCapabilities=CAP_SYSLOG` 运行（不给 root）—— dbus-broker **拒绝异 uid 连接用户总线**，root 服务调 plasmashell 会 ENOTCONN
+- 服务以 `User=<桌面用户>` + `AmbientCapabilities=CAP_SYSLOG` 运行（不给 root）—— dbus-broker **拒绝异 uid 连接用户总线**，root 服务调 plasmashell 会 ENOTCONN
 - 尾部 /dev/kmsg → 匹配码 → `busctl --address=unix:path=/run/user/1000/bus call org.kde.plasmashell /org/kde/osdService org.kde.osdService {touchpadEnabledChanged b / keyboardBrightnessChanged i}`
 - **150ms 静默合并 + 异步发射**：连按只发最终态。直接每按一发会把 plasmashell OSD 动画刷残卡屏（12 连发实测复现）；同步发射会排队滞后
 - 键盘灯档位映射 0/50/100；触控板 false/true
