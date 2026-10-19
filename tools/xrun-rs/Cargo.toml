@@ -1,0 +1,13 @@
+[package]
+name = "xrun-rs"
+version = "0.1.0"
+edition = "2021"
+build = false
+
+# 纯 std + libc（dlopen/dlsym 直调），零重依赖
+[dependencies]
+libc = "0.2"
+
+[profile.release]
+opt-level = 2
+panic = "abort"

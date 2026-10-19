@@ -1,0 +1,61 @@
+# xrun-rs ABI profile — 原子包：库指纹 + 符号名 + vtable 槽位三位一体
+#
+# 语义：本文件整体描述"某个具体构建"的 ABI 锚点。启动时 xrun-rs 会
+#   1) 按 [fingerprint].target_lib dlopen；
+#   2) 读已加载映像的 .note.gnu.build-id，与 [fingerprint].build_id 比对；
+#      不匹配 → 拒绝运行（不是警告）——防止跨版本混配槽位导致静默错派发/段错误；
+#   3) 逐个 dlsym [symbols]，缺失 → 立即失败；
+#   4) 虚调用全部按 [slots] 派发。
+#
+# 换库/升级 RAI 后：python3 tools/make_profile.py <libvitis-ai-runtime.so> [新profile.toml]
+# （自动实测 build-id + 槽位并核对符号存在性），再用 --profile <文件> 或替换本文件。
+# 手工重测方法见 README「vtable 槽位表」与 tools/vt_slots.py。
+#
+# ── 本默认 profile 的实测来源 ──
+#   库: RAI 1.8.0 wheel 的 voe/lib/libvitis-ai-runtime.so（xir+vart+graph-engine 合并库）
+#   日期: 2026-10-17，机器: AMD Ryzen AI 9 365 (Strix)
+#   槽位测法: vptr=vtable+0x10、逐槽解析 RELATIVE/R_X86_64_64 重定位（tools/vt_slots.py）
+#     Runner 侧 vtable: _ZTV11GraphRunner @0xfff9e8（与 1.4 npu-llm graph-engine 实测一致，无漂移）
+#     TensorBuffer 侧 vtable: _ZTVN4vart24CpuFlatTensorBufferOwnedE @0x1024ce0
+#   符号: nm -D 逐一核对存在；mangled 名与 1.4 完全一致
+#   验证: id101/109/113/119/132 与 C++ xrun2(RAI 1.4) 输出逐位一致
+
+[fingerprint]
+target_lib = "libvitis-ai-runtime.so"
+# readelf -n .../libvitis-ai-runtime.so | grep 'Build ID'
+build_id = "1bdc8e6ab9f906ae451c1f99a6323d34f97f411d"
+
+[slots]
+# —— vtable for GraphRunner（exec 期对象即 GraphRunner）——
+runner_execute_async = 2
+runner_wait = 3
+runner_get_input_tensors = 5
+runner_get_output_tensors = 6
+runner_get_inputs = 7
+runner_get_outputs = 8
+# —— vtable for vart::TensorBuffer 系（CpuFlatTensorBuffer/Owned/UnownedDevice 布局一致）——
+tb_data = 2
+tb_sync_for_read = 5
+tb_sync_for_write = 6
+
+[symbols]
+# xir::Graph::deserialize(const string&) -> unique_ptr<Graph>（sret16，自定义删除器）
+graph_deserialize = "_ZN3xir5Graph11deserializeERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE"
+graph_root = "_ZNK3xir8GraphImp17get_root_subgraphEv"
+sg_has_attr = "_ZNK3xir11SubgraphImp8has_attrERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE"
+# get_attr 返回 std::any（16B 非平凡 → sret: rdi=ret, rsi=subgraph, rdx=&name）
+sg_get_attr = "_ZNK3xir11SubgraphImp8get_attrERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE"
+sg_children = "_ZNK3xir11SubgraphImp25children_topological_sortEv"
+sg_name = "_ZNK3xir11SubgraphImp8get_nameB5cxx11Ev"
+t_shape = "_ZNK3xir9TensorImp9get_shapeEv"
+t_elems = "_ZNK3xir9TensorImp15get_element_numEv"
+t_dtype = "_ZNK3xir9TensorImp13get_data_typeEv"
+t_bits = "_ZNK3xir9TensorImp13get_bit_widthEv"
+attrs_create = "_ZN3xir5Attrs6createEv"
+attrs_set_attr = "_ZN3xir8AttrsImp8set_attrERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERKSt3any"
+runner_create_attrs = "_ZN4vart6Runner24create_runner_with_attrsEPKN3xir8SubgraphEPNS1_5AttrsE"
+# map<string,string>::map(initializer_list, const less&, const alloc&)（弱导出 @0xc5cf30）
+map_init_ctor = "_ZNSt3mapINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES5_St4lessIS5_ESaISt4pairIKS5_S5_EEEC2ESt16initializer_listISA_ERKS7_RKSB_"
+# any 布局：+0=manager fnptr、+8=storage(T*)、_Op: 0=access/1=get_type_info/2=clone/3=destroy
+any_manager_mapss = "_ZNSt3any17_Manager_externalISt3mapINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES7_St4lessIS7_ESaISt4pairIKS7_S7_EEEE9_S_manageENS_3_OpEPKS_PNS_4_ArgE"
+any_cast_str = "_ZSt8any_castINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEET_RKSt3any"
