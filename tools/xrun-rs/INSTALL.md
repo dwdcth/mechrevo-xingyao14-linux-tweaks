@@ -5,8 +5,34 @@ Rust 直调 AMD XRT/Vitis-AI 运行库加载 NPU 模型的实验性推理器（�
 ## 前提
 
 - Rust 工具链
-- **AMD XRT**（`/opt/xilinx/xrt/lib`）——随 [Ryzen AI Software](https://ryzenai.docs.amd.com) 安装；CachyOS/Arch 上无打包，需从 RAI 发行包提取（本机实测细节见 `models/README.md` 第二阶段与仓库 docs）
-- NPU 为 Strix Point `AMD_AIE2P_4x4_Overlay_CFG0`（Ryzen AI 9 365/375 同族；其他代 NPU 需换 firmware/）
+- **AMD XRT**（版本与安装见下节）
+- 内核带 `amdxdna` NPU 驱动（主线已合并，CachyOS/Arch 7.x 内核自带；`ls /dev/accel/accel0` 或 `lsmod | grep amdxdna` 确认）
+- NPU 为 Strix Point `AMD_AIE2P_4x4_Overlay_CFG0`（Ryzen AI 9 365/375、HX 370 同族；其他代 NPU 需换 firmware/）
+
+## 安装 XRT（版本与下载）
+
+**验证过的版本：XRT `202620.2.25.37`（RAI 1.8 配套，关键库 `libxrt_core.so.2.25.37`）+ amdxdna 插件 `2.25.260102.56`**。仓库资产里的 `libvitis-ai-runtime.so` 就是对这套版本链接的，换其他 XRT 版本未验证。
+
+下载（EULA 表单，选 1.8 → Linux）：
+
+- 门户：https://www.amd.com/en/products/software/ryzen-ai-software.html
+- 安装文档：https://ryzenai.docs.amd.com/en/latest/inst.html
+- 取 **`RAI_1.8_Linux_NPU_XRT.zip`**（86M，含四个 deb：base / base-dev / npu / plugin）
+- xrun-rs 只需要 XRT；若还要 Python 全栈（onnxruntime-vitisai 等），另下 `ryzen_ai-1.8.0.tgz`（7.3G），Arch 系适配坑见 [models/README.md](models/README.md) 第二阶段
+
+Ubuntu 24.04 直接 `sudo dpkg -i` 三个运行时 deb（base、npu、plugin）。**Arch/CachyOS 不能装 deb**，解包提库：
+
+```bash
+unzip RAI_1.8_Linux_NPU_XRT.zip && cd RAI_1.8_Linux_NPU_XRT
+mkdir rootfs
+for d in xrt_202620.2.25.37_24.04-amd64-base.deb \
+         xrt_202620.2.25.37_24.04-amd64-npu.deb \
+         xrt_plugin.*.deb; do
+    ar p "$d" data.tar.gz | bsdtar -xf - -C rootfs
+done
+sudo cp -a rootfs/opt/xilinx/xrt /opt/xilinx/    # 库全部位于 opt/xilinx/xrt/lib
+ls /opt/xilinx/xrt/lib | grep 'libxrt_core.so.2'  # 应见 libxrt_core.so.2.25.37
+```
 
 ## 运行资产（GitHub Release 分发，不入 git 树）
 
