@@ -24,6 +24,7 @@
 | 扬声器校正 | [integrations/audio](integrations/audio/INSTALL.md) | 原厂 Nahimic 卷积 IR → EasyEffects，六套场景预设 + Mac 曲线 |
 | NPU 模型推理 | [tools/xrun-rs](tools/xrun-rs/INSTALL.md) | Rust 直调 XRT/Vitis-AI ABI 跑 Windows 效果模型（31fps 人像分割），含模型提取逆向全记录 |
 | WPS 流氓进程治理 | [integrations/wps](integrations/wps/INSTALL.md) | EverythingDaemon 永禁（曾卡死 FUSE 挂载致合盖假死）+ WPS 退出后自动清场常驻进程，[附论坛分享稿](integrations/wps/forum-post.zh.md) |
+| KDE 日历中国节假日 | [integrations/kde-calendar](integrations/kde-calendar/INSTALL.md) | 用户级数据覆盖（数据编译在 libKF6Holidays 内）+ 去英文化 + 补班红点，qmldir prefer 坑与 pacman hook 全记录 |
 | NPU 语音听写（机身 AI 键） | [integrations/asr](integrations/asr/INSTALL.md) | flm + voxtype：AI 键(KEY_F23)说话→简体进光标；Wayland CJK 输出/模型下载排雷记见 [docs/notes/asr-dictation.md](docs/notes/asr-dictation.md) |
 | 微信沙箱双向修复 | [integrations/wechat](integrations/wechat/INSTALL.md) | wechat-universal-bwrap 发文件（binds.list）+ 收图（symlink），沙箱死路径根因与修法 |
 | XWayland 全屏黑屏排障 | [docs/notes/xwayland-scanout-black.md](docs/notes/xwayland-scanout-black.md) | AMD 直扫 + 应用自行缩放：截图正常肉眼黑，wmctrl 验证法与根治 |
@@ -40,6 +41,7 @@
 ├── integrations/
 │   ├── systemd/        # mechrevo-osd / mechrevo-charge / kde-lock-raise / fprintd-release
 │   ├── kde/            # 锁屏指纹 QML 补丁 + pacman hook
+│   ├── kde-calendar/   # KDE 时钟日历：中国节假日数据覆盖 + 补班红点
 │   ├── audio/          # EasyEffects 预设与 IRS
 │   ├── asr/            # 机身 AI 键语音听写（flm + voxtype 服务与配置）
 │   ├── wechat/         # 微信 bwrap 沙箱发文件/收图双向修复

@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# KDE 日历：中国调休补班日圆点染红
+# 两件事：
+#   1. qmldir 去掉 "prefer :/qt/qml/..." 行——模块优先从内嵌资源加载 QML，
+#      不删这行改磁盘 DayDelegate.qml 无效（.so 里有预编译字节码）
+#   2. DayDelegate.qml 事件点颜色：配套的用户级数据文件
+#      ~/.local/share/kf5/libkholidays/plan2/holiday_cn_zh-cn 里补班条目
+#      名为 "补班"，经天级 subDayLabel 判断染红（红点标记=名字含"补班"）
+# 说明：org.kde.plasma.workspace.calendar 属 plasma-workspace 包；
+#   拆除 = 删 hook + sudo pacman -S plasma-workspace 重装（备份文件 .orig-*）
+# v3 (2026-10-20): 红点标记从 "(Workday)" 改为 "补班"（配合数据文件去英文化）
+set -euo pipefail
+
+DIR=/usr/lib/qt6/qml/org/kde/plasma/workspace/calendar
+QML=$DIR/DayDelegate.qml
+QMLDIR=$DIR/qmldir
+MARKER='kde-calendar-workday-dot'
+
+# ---- 1. qmldir: 移除 prefer 内嵌资源行（幂等）----
+if [[ -f "$QMLDIR" ]] && grep -q '^prefer ' "$QMLDIR"; then
+    cp -n "$QMLDIR" "$QMLDIR.orig-prefer"
+    sed -i '/^prefer /d' "$QMLDIR"
+    echo "kde-calendar-workday-dot: qmldir prefer line removed"
+fi
+
+# ---- 2. DayDelegate.qml 颜色补丁（幂等）----
+if [[ ! -f "$QML" ]]; then
+    echo "kde-calendar-workday-dot: $QML not found, skipping" >&2
+    exit 0
+fi
+
+if grep -qF "$MARKER" "$QML"; then
+    echo "kde-calendar-workday-dot: already applied"
+    exit 0
+fi
+
+cp -n "$QML" "$QML.orig-workday-dot" || true
+
+python3 - "$QML" <<'PYEOF'
+import sys
+
+path = sys.argv[1]
+src = open(path, encoding="utf-8").read()
+
+old = """                        color: eventColor
+                            ? Kirigami.ColorUtils.linearInterpolation(eventColor, Kirigami.Theme.textColor, 0.05)
+                            : Kirigami.Theme.highlightColor"""
+
+new = """                        // kde-calendar-workday-dot: China make-up workday (subDayLabel contains 补班) -> red dot
+                        color: (dayStyle.model.subDayLabel || "").indexOf("补班") !== -1
+                            ? Kirigami.Theme.negativeTextColor
+                            : (eventColor
+                                ? Kirigami.ColorUtils.linearInterpolation(eventColor, Kirigami.Theme.textColor, 0.05)
+                                : Kirigami.Theme.highlightColor)"""
+
+if old not in src:
+    print("kde-calendar-workday-dot: pattern not found - upstream QML changed, patch NOT applied", file=sys.stderr)
+    sys.exit(1)
+
+open(path, "w", encoding="utf-8").write(src.replace(old, new, 1))
+print("kde-calendar-workday-dot: patched")
+PYEOF

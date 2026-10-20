@@ -1,0 +1,12 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = plasma-workspace
+
+[Action]
+Description = Re-applying KDE calendar workday red-dot patch...
+When = PostTransaction
+Exec = /usr/local/bin/kde-calendar-workday-dot
+Depends = bash
+Depends = python
