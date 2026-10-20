@@ -4,9 +4,12 @@
 
 ## 适用范围与安全声明
 
-- 验证基线：**P916F-STX，BIOS 1.15，CachyOS（内核 7.2），KDE Plasma 6.8 Wayland，btrfs**
+> ⚠️ **先读再跑**：本仓库所有工具与文档**只在下面这一台具体机器上验证过**。同方公模的不同机型（甚至同型号不同 BIOS/EC 版本）寄存器语义可能完全不同——无界14X 的充电限制写法 `0x07B9` 在本机就不是控制地址，是现成的反例。**在非验证机型上照抄 EC/WMI 写操作可能变砖。** 不确定就只跑只读命令、先读对应文档的证据链，或直接放弃。
+
+- 验证基线：**P916F-STX，BIOS 1.15，CachyOS（内核 7.2），KDE Plasma 6.8 Wayland，btrfs**——这是唯一验证环境
 - 其他星耀/P916F 变体（-HPT-R / -ARL 等）未验证——**EC 写入操作在未验证机型上可能变砖**（本机就因休眠固件路径砖过一次，长按电源 30 秒清 EC 才救回）
 - 本机休眠**只能用 `HibernateMode=shutdown`，禁用 platform 模式**（会砖），详见 [docs/hibernation.md](docs/hibernation.md)
+- 各组件 INSTALL.md 的"前提"一节写明了验证环境；你的机型/固件对不上时，风险自担
 
 ## 功能矩阵
 
@@ -21,6 +24,9 @@
 | 扬声器校正 | [integrations/audio](integrations/audio/INSTALL.md) | 原厂 Nahimic 卷积 IR → EasyEffects，六套场景预设 + Mac 曲线 |
 | NPU 模型推理 | [tools/xrun-rs](tools/xrun-rs/INSTALL.md) | Rust 直调 XRT/Vitis-AI ABI 跑 Windows 效果模型（31fps 人像分割），含模型提取逆向全记录 |
 | WPS 流氓进程治理 | [integrations/wps](integrations/wps/INSTALL.md) | EverythingDaemon 永禁（曾卡死 FUSE 挂载致合盖假死）+ WPS 退出后自动清场常驻进程，[附论坛分享稿](integrations/wps/forum-post.zh.md) |
+| NPU 语音听写（机身 AI 键） | [integrations/asr](integrations/asr/INSTALL.md) | flm + voxtype：AI 键(KEY_F23)说话→简体进光标；Wayland CJK 输出/模型下载排雷记见 [docs/notes/asr-dictation.md](docs/notes/asr-dictation.md) |
+| 微信沙箱双向修复 | [integrations/wechat](integrations/wechat/INSTALL.md) | wechat-universal-bwrap 发文件（binds.list）+ 收图（symlink），沙箱死路径根因与修法 |
+| XWayland 全屏黑屏排障 | [docs/notes/xwayland-scanout-black.md](docs/notes/xwayland-scanout-black.md) | AMD 直扫 + 应用自行缩放：截图正常肉眼黑，wmctrl 验证法与根治 |
 
 ## 目录结构
 
@@ -35,6 +41,8 @@
 │   ├── systemd/        # mechrevo-osd / mechrevo-charge / kde-lock-raise / fprintd-release
 │   ├── kde/            # 锁屏指纹 QML 补丁 + pacman hook
 │   ├── audio/          # EasyEffects 预设与 IRS
+│   ├── asr/            # 机身 AI 键语音听写（flm + voxtype 服务与配置）
+│   ├── wechat/         # 微信 bwrap 沙箱发文件/收图双向修复
 │   └── wps/            # WPS 流氓进程治理（一键脚本 + 论坛分享稿）
 └── NOTICE.md        # 厂商衍生素材（IRS/模型/运行库/固件）的来源与再分发说明
 ```
