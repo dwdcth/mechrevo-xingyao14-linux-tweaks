@@ -1,0 +1,14 @@
+[Unit]
+Description=Voxtype push-to-talk daemon (remote NPU backend)
+# flm-asr 是系统级服务，用户管理器里排不了序；flm 未起时 voxtype 请求失败由 Restart 兜底
+After=pipewire.service
+
+[Service]
+ExecStart=%h/.local/bin/voxtype daemon
+# ydotool 用户级守护的 socket（%U = 当前 UID）
+Environment=YDOTOOL_SOCKET=/run/user/%U/.ydotool_socket
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

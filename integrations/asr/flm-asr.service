@@ -1,0 +1,17 @@
+[Unit]
+Description=FastFlowLM ASR server (Whisper large-v3-turbo on NPU)
+After=multi-user.target
+
+[Service]
+# $USER 由 INSTALL.md 的 sed 安装命令在写入时展开（systemd 不展开 shell 变量，勿直接 cp）
+User=$USER
+Group=$USER
+Environment=HOME=/home/$USER
+# NPU 推理需要大 memlock，默认 8MB 会在编译/加载时失败
+LimitMEMLOCK=infinity
+ExecStart=/usr/bin/flm serve --asr 1
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

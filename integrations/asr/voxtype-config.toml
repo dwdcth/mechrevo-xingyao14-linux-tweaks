@@ -1,0 +1,24 @@
+# Voxtype → FastFlowLM (NPU) OpenAI 兼容接口
+engine = "whisper"
+
+[whisper]
+mode = "remote"
+remote_endpoint = "http://127.0.0.1:52625"
+remote_model = "whisper-v3"
+language = "zh"
+
+# 全局热键：机身 AI 键（EC 固定发出 LeftMeta+F23 组合，voxtype evdev 直读）
+[hotkey]
+enabled = true
+key = "KEY_F23"
+modifiers = []
+
+# 输出：KDE Wayland 下 wtype 被协议挡、ydotool 不支持 CJK，
+# 用 paste 模式——文本进剪贴板后自动按 Ctrl+V（纯键码，无 CJK 限制）
+[output]
+mode = "paste"
+paste_keys = "ctrl+v"
+
+# 繁体→简体（Whisper 中文解码常出繁体，OpenCC 确定性转换）
+[output.post_process]
+command = "opencc -c t2s.json"
