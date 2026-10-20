@@ -12,15 +12,20 @@
 | `system-sleep/fprintd-release.sh` | `/usr/lib/systemd/system-sleep/` | 挂起前 stop fprintd 释放指纹器（s2idle 机型 S0ix 必需） |
 
 ```bash
-sudo install -Dm644 mechrevo-osd.service mechrevo-charge.service kde-lock-raise.service /etc/systemd/system/
+# osd 单元：$USER 与 uid 在写入时展开（systemd 不展开 shell 变量，勿直接 cp）
+sed -e "s/\$USER/$USER/g" -e "s#/run/user/1000#/run/user/$(id -u)#g" mechrevo-osd.service \
+    | sudo tee /etc/systemd/system/mechrevo-osd.service >/dev/null
+sudo install -Dm644 mechrevo-charge.service kde-lock-raise.service /etc/systemd/system/
 sudo install -Dm755 system-sleep/fprintd-release.sh /usr/lib/systemd/system-sleep/fprintd-release.sh
 sudo systemctl daemon-reload
 sudo systemctl enable --now mechrevo-osd mechrevo-charge kde-lock-raise
 ```
 
-## 需按本机适配的三处（`mechrevo-osd.service`）
+## `mechrevo-osd.service` 的三处本机相关字段
 
-1. `User=` / `Group=`：改成你的桌面用户（守护要连该用户的 session DBus 发 OSD/调 kscreen）
+上面的安装命令已在写入时自动展开；若手动拷贝则需自行修改：
+
+1. `User=` / `Group=`：`$USER` → 你的桌面用户（守护要连该用户的 session DBus 发 OSD/调 kscreen）
 2. `DBUS_SESSION_BUS_ADDRESS` 的 uid：`/run/user/<UID>/bus`
 3. `XDG_RUNTIME_DIR`：`/run/user/<UID>`
 
