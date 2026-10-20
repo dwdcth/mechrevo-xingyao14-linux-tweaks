@@ -32,7 +32,7 @@
 ## 目录结构
 
 ```
-├── docs/            # 文档：硬件地图（EC 寄存器/WMI 事件码）、休眠、触控板 I2C、逆向笔记
+├── docs/            # 文档：硬件地图（EC 寄存器/WMI 事件码）、休眠、触控板 I2C、输入法（KDE Wayland 虚拟键盘）、逆向笔记
 ├── firmware/        # 本机 ACPI 反编译（DSDT + 30 SSDT）、EC 素材
 ├── tools/
 │   ├── mechrevo-ctl/   # Rust 主工具：EC/充电/WMI/OSD 守护（零依赖单二进制）
