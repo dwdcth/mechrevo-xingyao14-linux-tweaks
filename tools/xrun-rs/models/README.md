@@ -51,7 +51,7 @@
    - venv: `~/项目/mechrevo-star14/camera/mep-run/venv`（Python 3.12.15 via mise，numpy 必须 <2）
    - 运行环境: `bash rai-env.sh <cmd>`（含全部 LD_LIBRARY_PATH、XILINX_XRT、compat 兼容层）
    - `onnxruntime-vitisai 1.27` + `VitisAIExecutionProvider` 注册成功，EP 原生库全部加载
-   - 兼容三件套：execstack 清除器（clear_execstack.py）、ncurses→ncursesw 符号链接（venv/compat）、配套 XRT 库（从 RAI_1.8_Linux_NPU_XRT.zip deb 里提取 libxrt_core.so.2.25.37，避免与 flm 装的旧版冲突）
+   - 兼容三件套：execstack 清除器（rai/clear_execstack.py，仓库内）、ncurses→ncursesw 符号链接（venv/compat）、配套 XRT 库（从 RAI_1.8_Linux_NPU_XRT.zip deb 里提取 libxrt_core.so.2.25.37，避免与 flm 装的旧版冲突）
 
 ## 卡点（老编译图 vs 新运行时的格式代差）
 
@@ -75,9 +75,9 @@
 
 ## 资产清单
 
-- `mep-run/venv` — 完整可用推理环境（对新模型立即可用）
-- `mep-run/rai-env.sh` — 环境包装器
-- `mep-run/clear_execstack.py` — ELF 可执行栈标志清除器
+- `mep-run/venv` — 完整可用推理环境（对新模型立即可用；venv 不入库，按 INSTALL.md 自建）
+- `rai/rai-env.sh` — 环境包装器（仓库通用化版，`RAI_VENV` 指向自建 venv）
+- `rai/clear_execstack.py` — ELF 可执行栈标志清除器
 - `/tmp/id101_xir.txt` — id101 完整图文本（重启后可重新生成）
 - 事件/坑：numpy≥2 会让 ORT pybind 假死；PYTHONPATH 不能指文件；mise python 无 libpython 共享库需手动加路径
 

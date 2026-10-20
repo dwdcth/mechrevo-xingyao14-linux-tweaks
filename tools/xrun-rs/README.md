@@ -149,7 +149,7 @@ python3 tools/vt_slots.py <libvitis-ai-runtime.so> <vtable符号地址(hex)> <�
 ## 其他
 
 - `tools/dump_vt18.py`：批量槽位 dump 的旧脚本（RELATIVE 重定位反查）。
-- execstack：新拷 .so 若被内核拒载，用 `python3 ../mep-run/clear_execstack.py <so>` 清标志（本仓库副本无需）。
+- execstack：新拷 .so 若被内核拒载，用 `python3 rai/clear_execstack.py <so>` 清标志（本仓库副本无需）。
 - memlock 与 HOME：保持 `sudo prlimit -- ... env`（勿 env -i，库构造需要 HOME）。
 - 别动 `../mep-run/venv`（1.8）、`../mep-run/venv14`（1.4 对照 + xclbin）、`/opt/xilinx`。
 
