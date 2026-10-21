@@ -28,6 +28,7 @@
 | NPU 语音听写（机身 AI 键） | [integrations/asr](integrations/asr/INSTALL.md) | flm + voxtype：AI 键(KEY_F23)说话→简体进光标；Wayland CJK 输出/模型下载排雷记见 [docs/notes/asr-dictation.md](docs/notes/asr-dictation.md) |
 | 微信沙箱双向修复 | [integrations/wechat](integrations/wechat/INSTALL.md) | wechat-universal-bwrap 发文件（binds.list）+ 收图（symlink），沙箱死路径根因与修法 |
 | XWayland 全屏黑屏排障 | [docs/notes/xwayland-scanout-black.md](docs/notes/xwayland-scanout-black.md) | AMD 直扫 + 应用自行缩放：截图正常肉眼黑，wmctrl 验证法与根治 |
+| herdr/SSH 会话贴图失败 | [docs/notes/herdr-wayland-clipboard.md](docs/notes/herdr-wayland-clipboard.md) | SSH 启动的 herdr server 继承不到 WAYLAND_DISPLAY，Claude Code 贴图静默失败；bashrc 从 systemd 用户环境找回变量 |
 
 ## 目录结构
 
