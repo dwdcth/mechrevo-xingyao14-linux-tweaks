@@ -89,7 +89,9 @@ try/catch 无效，说明不止是 kdotool 缺失的异常问题，闭包引用�
 
 **打补丁的坑**：CopyQ 保存时会把 `copyq-commands.ini` 里的多行 Command 重写为
 `\n` 转义的**单行**——补丁脚本必须按转义形式匹配（`\n` 是两个字符），按原始
-多行文本 sed/python 匹配会静默失败。
+多行文本 sed/python 匹配会静默失败。**且每次 CopyQ 退出都会重新序列化**
+（`};` 变 `}`、引号风格变），打补丁前先 `copyq exit` 再 `grep` 当前字节形态，
+凭记忆写 pattern 必挂。
 
 **验收教训**：当时只验了"点选即贴"（读路径），没验"新条目入库"（写路径），
 带病上线半天才暴露。两个方向都要测：
@@ -98,6 +100,38 @@ try/catch 无效，说明不止是 kdotool 缺失的异常问题，闭包引用�
 c0=$(copyq count); wl-copy TEST; sleep 1.2; c1=$(copyq count)   # 写:count 应 +1
 # + 上节的 zenity 全链路（读）
 ```
+
+## 第二个本机补丁：按内容选粘贴键（图片一步进 Claude Code）
+
+原始设计只发 Shift+Insert——GUI 应用没问题，但**终端里的 Claude Code** 收到
+Shift+Insert 只能文本粘贴，图片进不去（终端的物理限制）；而 Claude Code 自带
+的 Ctrl+V 会自己调 wl-paste 读图。补丁让 `global.paste` 看内容下菜：
+
+```js
+global.paste = function () {
+    var isImg = false;
+    try { isImg = str(read('image/png', 0)).length > 0; } catch (e) {}
+    if (isImg) {
+        sendShortcut('29:1', '47:1', '47:0', '29:0');    // Ctrl+V：Claude Code 贴图
+    } else {
+        sendShortcut('42:1', '110:1', '110:0', '42:0');  // Shift+Insert：终端文本安全
+    }
+};
+```
+
+图片→Ctrl+V 对 GUI 应用同样成立（Word/浏览器照贴），两臂各自最优。
+代价：**纯 shell 终端**里点选图片条目会注入 Ctrl+V → 命令行出现字面 `^V`，
+退格删掉即可（罕见场景）。
+
+**验证方法论**（这轮踩出来的）：
+
+- **探针法最可靠**：临时在 `sendShortcut` 里加一行
+  `run('sh','-c','echo k=... >> /tmp/_pastekeys')` 记录键码，激活条目后看
+  日志即知选了哪臂，**不依赖任何焦点行为**
+- GUI 靶子焦点不可靠：zenity 能抢到 KWin 焦点，konsole/alacritty 的新窗口
+  抢不到（焦点防抢）——拿它们当注入靶子会静默失败、误判补丁
+- `cat -v > file` 是块缓冲，两个字符的 `^V` 会在 pkill 时丢在缓冲里，
+  要用 `stdbuf -o0`
 
 ## Klipper 退役实验：引擎退不掉
 
