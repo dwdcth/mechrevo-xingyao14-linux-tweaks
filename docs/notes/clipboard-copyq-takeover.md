@@ -42,7 +42,7 @@ Windows Win+V 式体验：`Meta+V` 弹历史 → 点条目 → **自动粘贴**�
 | Klipper 托盘 applet 移除 | 见下节"退役实验"；等效于 UI 里 系统托盘→条目→剪贴板→已禁用 |
 | CopyQ 安装/自启 | `pacman -S copyq ydotool wtype`；desktop 文件拷入 `~/.config/autostart/`（wtype 装了也没用，可省） |
 | ydotoold 守护 | `systemctl --user enable --now ydotool.service`（ydotool 包自带用户级单元；用户需在 `input` 组） |
-| wayland-support 命令 | 从 [copyq-commands 仓库](https://github.com/hluk/copyq-commands/blob/master/commands/wayland-support.ini)取 ini，合并进 `~/.config/copyq/copyq-commands.ini`（`N\Command=` 多行 + `N\IsScript=true` + `size` 计数 +1），重启 CopyQ |
+| wayland-support 命令 | 从 [copyq-commands 仓库](https://github.com/hluk/copyq-commands/blob/master/commands/wayland-support.ini)取 ini，合并进 `~/.config/copyq/copyq-commands.ini`（`N\Command=` 多行 + `N\IsScript=true` + `size` 计数 +1），重启 CopyQ。**必须打本机补丁，见下节** |
 | CopyQ 的 Meta+V | CopyQ 首选项→常规→"显示/隐藏主窗口"快捷键设 Meta+V（会存成 copyq-commands.ini 里 `IsGlobalShortcut` 命令） |
 | 点选即贴 | CopyQ 默认已开（`activate_pastes=true`），无需动 |
 
@@ -64,6 +64,40 @@ cat /tmp/out                                # 有 TEST = 全链路通
 
 **坑**：CLI 的 `copyq paste` 走原生路径、**绕过脚本覆盖**，永远报错，别拿它当
 验收标准；真实用户路径（窗口内 Enter/点条目）走脚本层，是好的。
+
+## 官方脚本在本机的坑：onClipboardChanged 覆盖会弄断入库
+
+**症状**：装上 wayland-support 后"点选即贴"正常，但 CopyQ 不再收录新剪贴板
+（`copyq count` 不涨）。禁用该命令立即恢复 → 锁定脚本。
+
+**根因**：脚本对入库回调的覆盖
+
+```js
+const onClipboardChanged_ = onClipboardChanged;   // 闭包捕获原始回调
+onClipboardChanged = function () {
+    ...取窗口标题(kdotool)...
+    onClipboardChanged_();                        // ← 这条链路在 CopyQ 16 命令
+};                                                //   脚本环境里断了,入库中止
+```
+
+其声明用途是给条目记录来源窗口标题（KDE 依赖 AUR 的 kdotool）。实测在本机
+（CopyQ 16 / Plasma 6.8 / 无 kdotool）该覆盖使入库完全失效——先给取标题段包
+try/catch 无效，说明不止是 kdotool 缺失的异常问题，闭包引用本身就不可靠。
+
+**补丁（本机已打）**：把整个 onClipboardChanged 覆盖块删掉，其余功能
+（paste/copy/focusPrevious/截图）不受影响。放弃的唯一功能 = 条目窗口标题。
+
+**打补丁的坑**：CopyQ 保存时会把 `copyq-commands.ini` 里的多行 Command 重写为
+`\n` 转义的**单行**——补丁脚本必须按转义形式匹配（`\n` 是两个字符），按原始
+多行文本 sed/python 匹配会静默失败。
+
+**验收教训**：当时只验了"点选即贴"（读路径），没验"新条目入库"（写路径），
+带病上线半天才暴露。两个方向都要测：
+
+```bash
+c0=$(copyq count); wl-copy TEST; sleep 1.2; c1=$(copyq count)   # 写:count 应 +1
+# + 上节的 zenity 全链路（读）
+```
 
 ## Klipper 退役实验：引擎退不掉
 
@@ -89,7 +123,8 @@ cat /tmp/out                                # 有 TEST = 全链路通
 - 终端里 Shift+Insert 是粘贴 ✓（这正是选它不选 Ctrl+V 的原因）
 - 极端个别的应用若不认 Shift+Insert，把 wayland-support 脚本里 `global.paste`
   的键码 `42:1 110:1` 换成 `29:1 47:1`（Ctrl+V），但终端会失效
-- 脚本的"窗口标题"功能依赖 `kdotool`（AUR），不装只影响 CopyQ 日志安静度
+- 条目窗口标题功能已随补丁放弃（kdotool 也因此**不必装**——装了反而要把补丁
+  回退才用得上）
 - `copyq paste` CLI 命令不可用（见上）
 
 ## 回滚
