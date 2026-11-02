@@ -31,6 +31,7 @@
 | herdr/SSH 会话贴图失败 | [docs/notes/herdr-wayland-clipboard.md](docs/notes/herdr-wayland-clipboard.md) | SSH 启动的 herdr server 继承不到 WAYLAND_DISPLAY，Claude Code 贴图静默失败；bashrc 从 systemd 用户环境找回变量 |
 | KDE 剪贴板历史被拖选刷屏 | [docs/notes/klipper-selection-history.md](docs/notes/klipper-selection-history.md) | SaveSelection 把拖选的每个中间态记成一条历史；关闭选区记录，附 klipperrc 开关速查 |
 | 剪贴板迁移 CopyQ（点选即贴） | [docs/notes/clipboard-copyq-takeover.md](docs/notes/clipboard-copyq-takeover.md) | Wayland 自动粘贴三重障碍与 wayland-support + ydotool 方案；Klipper 惰性化退役实验（引擎退不掉的证据） |
+| 手动装应用图标空白（任务栏/Alt+Tab） | [docs/notes/app-icon-blank-kde.md](docs/notes/app-icon-blank-kde.md) | 文件/WM_CLASS 全对仍空白：KSycoca 是进程级缓存，`kbuildsycoca6` 后必须重启 plasmashell 与 kwin_wayland；含 KWin 脚本查 Wayland 窗口类 |
 
 ## 目录结构
 
