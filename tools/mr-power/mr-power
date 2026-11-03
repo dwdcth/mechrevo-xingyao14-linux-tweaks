@@ -5,6 +5,7 @@
 #   mr-power <N>     钳制到 N 瓦（5-65）
 #   mr-power info    当前功耗墙 + 分域功耗
 #   mr-power status  实时功耗（分域 + 电池整机）
+#   mr-power calibrate 标定其余功耗（拔电采样 40s，存 ~/.mr-power）
 set -euo pipefail
 
 if [ "$(id -u)" != 0 ]; then exec sudo "$0" "$@"; fi
@@ -13,6 +14,39 @@ USER_HOME=$(getent passwd "${SUDO_USER:-$(id -un 1000)}" | cut -d: -f6)
 RA=$(ls -d "$USER_HOME"/.local/share/mise/installs/github-fly-goat-ryzen-adj/*/ryzenadj 2>/dev/null | sort -V | tail -1)
 [ -x "$RA" ] || { echo "ryzenadj 未安装：mise use -g github:FlyGoat/RyzenAdj" >&2; exit 1; }
 WMI=/usr/local/bin/mechrevo-ctl
+
+# 其余功耗标定文件：拔电时 其余 = 电池输出(整机) − APU封装 的中位数。
+# 插电后用它估算 整机 ≈ APU + 其余；适配器输出 ≈ 整机 − 电池放电。
+CALIB=$USER_HOME/.mr-power
+
+calibrated_rest() {  # 输出标定瓦数（无标定返回非 0）
+    [ -r "$CALIB" ] || return 1
+    sed -n 's/^REST_W=//p' "$CALIB" | head -1
+}
+
+# 电池快照：读一行 "power_now_W status"
+bat_snap() {
+    local p
+    for p in /sys/class/power_supply/*/; do
+        grep -q '^POWER_SUPPLY_TYPE=Battery' "$p/uevent" 2>/dev/null || continue
+        awk -v u="$(sed -n 's/^POWER_SUPPLY_POWER_NOW=//p' "$p/uevent")" \
+            -v st="$(sed -n 's/^POWER_SUPPLY_STATUS=//p' "$p/uevent")" \
+            'BEGIN{printf "%.1f %s", u/1e6, st}'
+        return 0
+    done
+    return 1
+}
+
+# Mains 在线状态（0=电池供电，1=适配器在线；无 Mains 设备按 1 兜底）
+mains_online() {
+    local p
+    for p in /sys/class/power_supply/*/; do
+        grep -q '^POWER_SUPPLY_TYPE=Mains' "$p/uevent" 2>/dev/null || continue
+        sed -n 's/^POWER_SUPPLY_ONLINE=//p' "$p/uevent" | head -1
+        return 0
+    done
+    echo 1
+}
 
 # 分域功耗：amdgpu gpu_metrics sysfs（v3.0，264B）。偏移经模块 BTF pahole 实测：
 #   socket@112 u32 · ipu(NPU)@116 u16 · gfx@124 u32 · all_core@132 u32 · sys@168 u16
@@ -82,12 +116,7 @@ case "${1:-info}" in
         # 无传感器：Mains 只有 online，充电芯片也不出 iio）。注意 EC 在限充点
         # 附近状态会抖（AC 在线也报 Discharging 且 POWER_NOW≈0），故只在
         # AC 离线时才给"整机实际"。
-        ac_online=1
-        for p in /sys/class/power_supply/*/; do
-            grep -q '^POWER_SUPPLY_TYPE=Mains' "$p/uevent" 2>/dev/null || continue
-            ac_online=$(sed -n 's/^POWER_SUPPLY_ONLINE=//p' "$p/uevent")
-            break
-        done
+        ac_online=$(mains_online)
         bat="" ; whole=""
         for p in /sys/class/power_supply/*/; do
             grep -q '^POWER_SUPPLY_TYPE=Battery' "$p/uevent" 2>/dev/null || continue
@@ -108,7 +137,59 @@ case "${1:-info}" in
             break
         done
         echo "实时功耗：${line}${bat}"
-        if [ -n "$whole" ]; then echo "$whole"; fi ;;
+        if [ -n "$whole" ]; then
+            echo "$whole"
+            # 其余实测 = 整机(电池) − APU封装
+            if [ -n "${soc:-}" ]; then
+                awk -v w="$w" -v s="$soc" 'BEGIN{printf "其余实测：%.1fW（整机−APU，屏幕/内存/盘/风扇/VRM）\n", w-s}'
+            fi
+        else
+            # 插电：适配器无传感器，用拔电标定的"其余"估算
+            rest_w=$(calibrated_rest || true)
+            if [ -n "$rest_w" ] && [ -n "${soc:-}" ]; then
+                awk -v s="$soc" -v r="$rest_w" -v bw="${w:-0}" 'BEGIN{
+                    printf "整机≈%.1fW（估算：APU %.2f + 标定其余 %s）\n", s+r, s, r
+                    if (bw > 0.5) printf "适配器输出≈%.1fW（整机−电池放电 %.1f）\n", s+r-bw, bw
+                }'
+            else
+                echo "插电时整机功耗只能估算：拔掉电源后运行 mr-power calibrate 标定一次即可"
+            fi
+        fi ;;
+    calibrate)
+        # 其余功耗标定：拔电时电池输出=整机真实，其余 = 电池 − APU封装，
+        # 采 40s 取中位数（过滤负值/离群：gpu_metrics 与电池刷新不同步会偶发）
+        echo "== 标定其余功耗（屏幕/内存/盘/风扇/VRM 等） =="
+        echo "1) 请拔掉电源适配器（120 秒内）……"
+        on=1
+        for _ in $(seq 1 120); do
+            on=$(mains_online)
+            [ "$on" = 0 ] && break
+            sleep 1
+        done
+        [ "$on" = 0 ] || { echo "超时未拔电源，放弃" >&2; exit 1; }
+        echo "2) 已转电池供电，稳定 3 秒后采样 40 秒——期间正常使用，负载多样更准（Ctrl-C 放弃）"
+        sleep 3
+        n=0 ; vals=""
+        for i in $(seq 1 40); do
+            sleep 1
+            snap=$(bat_snap || true)
+            [ -n "$snap" ] || continue
+            set -- $snap ; bw=$1 ; st=$2
+            [ "$st" = "Discharging" ] || continue
+            if read -r _ _ _ asoc _ < <(domains 2>/dev/null); then
+                rest=$(awk -v b="$bw" -v s="$asoc" 'BEGIN{r=b-s; if (r<2 || r>25) exit 1; printf "%.2f", r}') \
+                    && { vals="$vals $rest"; n=$((n+1)); printf '\r  %2ds/40s 电池 %5sW · APU %5sW · 其余 %5sW' "$i" "$bw" "$asoc" "$rest"; }
+            fi
+        done
+        echo
+        [ "$n" -ge 10 ] || { echo "有效样本不足（$n/10+）：确认电池在放电且 SOC 低于限充阈值后重试" >&2; exit 1; }
+        med=$(printf '%s\n' $vals | sort -n | awk -v m=$n '{v[NR]=$1} END{print (m%2)?v[int(m/2)+1]:(v[m/2]+v[m/2+1])/2}')
+        {   printf 'REST_W=%s\n' "$med"
+            printf '# %s 标定：N=%s 样本中位数；插电估算 整机≈APU+REST_W\n' "$(date '+%F %T')" "$n"
+        } > "$CALIB"
+        chown "${SUDO_USER:-$USER}" "$CALIB" 2>/dev/null || true
+        echo "3) 标定完成：其余功耗 ≈ ${med}W（$n 个有效样本），已存 $CALIB"
+        echo "   现在可以插回电源；此后 mr-power status 自动估算插电时的整机功耗" ;;
     quiet) clamp 12 ;;
     stock)
         mode=$("$WMI" mode 2>/dev/null | tr -dc '0-9')
@@ -120,5 +201,5 @@ case "${1:-info}" in
         [ "$w" -ge 5 ] && [ "$w" -le 65 ] || { echo "瓦数范围 5-65" >&2; exit 1; }
         clamp "$w" ;;
     *)
-        sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//' ;;
+        sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac
