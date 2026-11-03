@@ -18,7 +18,8 @@
 | 电池充电阈值 80% | [tools/mechrevo-ctl](tools/mechrevo-ctl/INSTALL.md) | EC PMC2 端口协议（0x68/0x6C）自逆向，无标准 sysfs 节点机型可用 |
 | FN 键全功能 OSD | [tools/mechrevo-ctl](tools/mechrevo-ctl/INSTALL.md) + [integrations/systemd](integrations/systemd/INSTALL.md) | 触控板/键盘灯/麦克风/飞行模式/Fn锁/**性能模式 Fn+X**/**刷新率 Fn+R**，事件码全表见 [docs/hardware-map.md](docs/hardware-map.md) |
 | 性能模式联动 KDE | 同上 | Fn+X 时同步 powerdevil 电源模式（官方 DBus 通道） |
-| SMU 功耗墙直调 | [tools/mr-power](tools/mr-power/INSTALL.md) | ryzenadj 包装：12W 静音档 / 任意瓦数 / 一键恢复 |
+| SMU 功耗墙直调 | [tools/mr-power](tools/mr-power/INSTALL.md) | ryzenadj 包装：12W 静音档 / 任意瓦数 / 一键恢复，**status 分域功耗（CPU/GFX/NPU/封装）+ 整机（拔电精确、插电经 calibrate 标定估算）** |
+| 分域功耗只读解码 | [tools/gpu-metrics](tools/gpu-metrics/INSTALL.md) | amdgpu gpu_metrics v3.0 零依赖解码器（每核功率/频率/温度/C0），布局取自模块 BTF；SMU 只读铁律的由来见 [docs/notes/smu-mailbox-brick-amdgpu.md](docs/notes/smu-mailbox-brick-amdgpu.md)（用户态写 mailbox 炸机全记录） |
 | 锁屏指纹直触解锁 | [integrations/kde](integrations/kde/INSTALL.md) | 电源键=指纹二合一机型：锁屏任意时刻轻触即解锁，QML 双补丁 + pacman hook |
 | 休眠（不砖机） | [docs/hibernation.md](docs/hibernation.md) | shutdown 模式定稿，含 platform 砖机完整证据链与内核源码分析 |
 | 扬声器校正 | [integrations/audio](integrations/audio/INSTALL.md) | 原厂 Nahimic 卷积 IR → EasyEffects，六套场景预设 + Mac 曲线 |
@@ -41,7 +42,9 @@
 ├── tools/
 │   ├── mechrevo-ctl/   # Rust 主工具：EC/充电/WMI/OSD 守护（零依赖单二进制）
 │   ├── xrun-rs/        # Rust NPU 推理（模型/运行库/固件经 GitHub Release 分发，见其 INSTALL.md）
-│   └── mr-power/       # 功耗墙快捷脚本
+│   ├── mr-power/       # 功耗墙快捷脚本（status 分域/整机功耗，calibrate 标定其余功耗）
+│   ├── gpu-metrics/    # gpu_metrics v3.0 只读解码器（分域功耗，零依赖）
+│   └── pmf-metrics/    # PMF mailbox 直读（已禁用，事故存档，用 gpu-metrics 代替）
 ├── integrations/
 │   ├── systemd/        # mechrevo-osd / mechrevo-charge / kde-lock-raise / fprintd-release
 │   ├── kde/            # 锁屏指纹 QML 补丁 + pacman hook
