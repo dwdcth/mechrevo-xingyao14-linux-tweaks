@@ -19,4 +19,7 @@ Restart=always
 RestartSec=2
 
 [Install]
-WantedBy=multi-user.target
+# 注意必须是 graphical.target 而不是 multi-user.target：本服务 After=graphical.target，
+# 而 graphical 又默认 After=multi-user——挂 multi-user 会成排序环，开机时 systemd
+# 直接删除启动任务装死（2026-11-03 实测，Fn+X 全失效直到下一次 unit 变更）。
+WantedBy=graphical.target

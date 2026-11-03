@@ -21,6 +21,12 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now mechrevo-osd mechrevo-charge kde-lock-raise
 ```
 
+> ⚠️ **mechrevo-osd 必须挂在 graphical.target**（单元里 `WantedBy=graphical.target`，`enable` 会自动处理）。
+> 历史上它曾是 `WantedBy=multi-user.target`——与单元自身的 `After=graphical.target` 组成排序环
+> （graphical 默认 After multi-user），开机时 systemd 会静默删掉它的启动任务，Fn 键全失效
+> （2026-11-03 实测）。若从旧版升级：先 `systemctl disable mechrevo-osd` 摘掉 multi-user 的
+> 符号链接再 `enable`，否则旧链接残留、环依旧。
+
 ## `mechrevo-osd.service` 的三处本机相关字段
 
 上面的安装命令已在写入时自动展开；若手动拷贝则需自行修改：
