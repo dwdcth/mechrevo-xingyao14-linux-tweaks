@@ -13,7 +13,9 @@ CapabilityBoundingSet=CAP_SYSLOG CAP_NET_ADMIN
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 ExecStart=/usr/local/bin/mechrevo-ctl osd
-Restart=on-failure
+# Restart=always: 干净退出(含 REISUB 'e' SIGTERM 式急救、ssh kill 等"看起来正常"
+# 的终止)也会被拉回;显式 systemctl stop 仍以手动为准,不会被顶回。
+Restart=always
 RestartSec=2
 
 [Install]
