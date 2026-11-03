@@ -3,8 +3,8 @@
 #   mr-power quiet   12W 静音档
 #   mr-power stock   恢复机器默认（按当前 Fn+X 档位）
 #   mr-power <N>     钳制到 N 瓦（5-65）
-#   mr-power info    当前功耗墙
-#   mr-power status  实时功耗（CPU/GPU/电池）
+#   mr-power info    当前功耗墙 + 分域功耗
+#   mr-power status  实时功耗（分域 + 电池整机）
 set -euo pipefail
 
 if [ "$(id -u)" != 0 ]; then exec sudo "$0" "$@"; fi
@@ -13,6 +13,26 @@ USER_HOME=$(getent passwd "${SUDO_USER:-$(id -un 1000)}" | cut -d: -f6)
 RA=$(ls -d "$USER_HOME"/.local/share/mise/installs/github-fly-goat-ryzen-adj/*/ryzenadj 2>/dev/null | sort -V | tail -1)
 [ -x "$RA" ] || { echo "ryzenadj 未安装：mise use -g github:FlyGoat/RyzenAdj" >&2; exit 1; }
 WMI=/usr/local/bin/mechrevo-ctl
+
+# 分域功耗：amdgpu gpu_metrics sysfs（v3.0，264B）。偏移经模块 BTF pahole 实测：
+#   socket@112 u32 · ipu(NPU)@116 u16 · gfx@124 u32 · all_core@132 u32 · sys@168 u16
+# 表头 {u16 size; u8 fmt_rev; u8 cnt_rev}，布局不符即退出回退。详见 tools/gpu-metrics。
+# 输出：五个瓦数 "cpu gfx npu soc sys"。
+domains() {
+    local f=""
+    local g
+    for g in /sys/class/drm/card*/device/gpu_metrics; do
+        [ -r "$g" ] && { f=$g; break; }
+    done
+    [ -n "$f" ] || return 1
+    od -An -v -tu2 --endian=little "$f" | awk '
+        function u32(i) { return u[i] + u[i+1]*65536 }
+        { for (i = 1; i <= NF; i++) u[n++] = $i }
+        END {
+            if (n < 86 || u[0] != 264 || int(u[1]) % 256 != 3) exit 1
+            printf "%.2f %.2f %.2f %.2f %.2f\n", u32(66)/1000, u32(62)/1000, u[58]/1000, u32(56)/1000, u[84]/1000
+        }' 2>/dev/null || return 1
+}
 
 clamp() {
     local w=$1
@@ -28,44 +48,57 @@ case "${1:-info}" in
     info)
         "$RA" --info 2>/dev/null | awk -F'|' '
             /STAPM LIMIT/    {stapm=$3+0}
+            /STAPM VALUE/    {stapmv=$3+0}
             /PPT LIMIT FAST/ {fast=$3+0}
+            /PPT VALUE FAST/ {fastv=$3+0}
             /PPT LIMIT SLOW/ {slow=$3+0}
-            END {printf "当前功耗墙：持续 %gW · 长时 %gW · 短时爆发 %gW\n", stapm, slow, fast}' ;;
+            /PPT VALUE SLOW/ {slowv=$3+0}
+            END {printf "当前功耗墙：持续 %gW · 长时 %gW · 短时爆发 %gW\n", stapm, slow, fast
+                 printf "实时功率(SMU)：持续 %gW · 瞬时 %gW · 均值 %gW\n", stapmv, fastv, slowv}'
+        if read -r cpu gfx npu soc sys < <(domains 2>/dev/null); then
+            awk -v c="$cpu" -v g="$gfx" -v n="$npu" -v s="$soc" -v y="$sys" 'BEGIN{
+                printf "分域功耗：CPU %.2fW · GFX %.2fW · NPU %.2fW · SoC 封装 %.2fW（其余 %.2fW）· 系统(SMU) %.2fW\n",
+                       c, g, n, s, s-c-g-n, y}'
+        fi ;;
     status)
-        # CPU：RAPL package 能量计数差分；APU 上 AMD 内核也叫 intel-rapl:0，
-        # 计数器到 max_energy_range_uj 回绕，差分为负时按量程补齐
-        rapl=$(ls -d /sys/class/powercap/*-rapl:0 2>/dev/null | head -1)
-        if [ -n "$rapl" ]; then
-            range=$(cat "$rapl/max_energy_range_uj")
-            e1=$(cat "$rapl/energy_uj"); t1=$(date +%s%N)
-            sleep 1
-            e2=$(cat "$rapl/energy_uj"); t2=$(date +%s%N)
-            cpu=$(awk -v e1="$e1" -v e2="$e2" -v r="$range" -v t1="$t1" -v t2="$t2" \
-                'BEGIN{d=e2-e1; if(d<0)d+=r; printf "%.1f", d/(t2-t1)*1000}')  # µJ/ns → W ×1000
+        # 分域优先：gpu_metrics v3.0（domains()）。失效回退 amdgpu hwmon
+        # power1_average——实测它就是 STAPM/PPT 整域功耗而非 gfx 子域（纯 CPU
+        # 压测能从 16W 跳到 44W 对上 45W 快速墙，与 RAPL 同域一致）。
+        line=""
+        if read -r cpu gfx npu soc sys < <(domains 2>/dev/null); then
+            line=$(awk -v c="$cpu" -v g="$gfx" -v n="$npu" -v s="$soc" -v y="$sys" 'BEGIN{
+                printf "SoC 封装 %.2fW = CPU %.2f + GFX %.2f + NPU %.2f + 其余 %.2f · 系统(SMU) %.2fW", s, c, g, n, s-c-g-n, y}')
         else
-            cpu="?"
+            for h in /sys/class/hwmon/hwmon*; do
+                [ "$(cat "$h/name" 2>/dev/null)" = amdgpu ] || continue
+                [ -r "$h/power1_average" ] || continue
+                line=$(awk -v u="$(cat "$h/power1_average")" 'BEGIN{printf "APU %.1fW(整域，gpu_metrics 不可用)", u/1e6}')
+                break
+            done
         fi
-        # GPU：amdgpu hwmon 的 1 秒滑动平均；APU 上它是 SoC 的子域，
-        # 独显机器该值不在 RAPL package 内，展示为独立项
-        gpu=""
-        for h in /sys/class/hwmon/hwmon*; do
-            [ "$(cat "$h/name" 2>/dev/null)" = amdgpu ] || continue
-            [ -r "$h/power1_average" ] || continue
-            gpu=$(awk -v u="$(cat "$h/power1_average")" 'BEGIN{printf "%.1f", u/1e6}')
+        [ -n "$line" ] || line="?"
+        # 电池：本机 EC 名叫 LCBT，按 TYPE=Battery 匹配兼容其他命名。
+        # 放电时电池输出 = 整机实际功耗（风扇/屏/盘/内存全含——AC 输入本机
+        # 无传感器：Mains 只有 online，充电芯片也不出 iio）。注意 EC 在限充点
+        # 附近状态会抖（AC 在线也报 Discharging 且 POWER_NOW≈0），故只在
+        # AC 离线时才给"整机实际"。
+        ac_online=1
+        for p in /sys/class/power_supply/*/; do
+            grep -q '^POWER_SUPPLY_TYPE=Mains' "$p/uevent" 2>/dev/null || continue
+            ac_online=$(sed -n 's/^POWER_SUPPLY_ONLINE=//p' "$p/uevent")
             break
         done
-        soc="SoC ${cpu}W"
-        [ -n "$gpu" ] && soc="$soc（其中 GPU ${gpu}W）"
-        [ -n "$gpu" ] || gpu="?"
-        # 电池：本机 EC 名叫 LCBT，按 TYPE=Battery 匹配兼容其他命名
-        bat=""
+        bat="" ; whole=""
         for p in /sys/class/power_supply/*/; do
             grep -q '^POWER_SUPPLY_TYPE=Battery' "$p/uevent" 2>/dev/null || continue
             w=$(awk -v u="$(sed -n 's/^POWER_SUPPLY_POWER_NOW=//p' "$p/uevent")" 'BEGIN{printf "%.1f", u/1e6}')
             st=$(sed -n 's/^POWER_SUPPLY_STATUS=//p' "$p/uevent")
             cap=$(sed -n 's/^POWER_SUPPLY_CAPACITY=//p' "$p/uevent")
             case "$st" in
-                Discharging)    zh="放电" ;;
+                Discharging)    zh="放电"
+                                if [ "$ac_online" != 1 ]; then
+                                    whole=$(awk -v w="$w" -v s="${soc:-0}" 'BEGIN{printf "整机实际：%.1fW（电池放电，含风扇/屏/盘/内存；SoC 之外 %.1fW）", w, w-s}')
+                                fi ;;
                 Charging)       zh="充电" ;;
                 Full)           zh="已充满" ;;
                 "Not charging") zh="未充电·限充" ;;
@@ -74,7 +107,8 @@ case "${1:-info}" in
             bat=$(printf ' · 电池 %.1fW %s（%s%%）' "$w" "$zh" "${cap:-?}")
             break
         done
-        echo "实时功耗：${soc}${bat}" ;;
+        echo "实时功耗：${line}${bat}"
+        if [ -n "$whole" ]; then echo "$whole"; fi ;;
     quiet) clamp 12 ;;
     stock)
         mode=$("$WMI" mode 2>/dev/null | tr -dc '0-9')
