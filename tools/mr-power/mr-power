@@ -4,6 +4,7 @@
 #   mr-power stock   恢复机器默认（按当前 Fn+X 档位）
 #   mr-power <N>     钳制到 N 瓦（5-65）
 #   mr-power info    当前功耗墙
+#   mr-power status  实时功耗（CPU/GPU/电池）
 set -euo pipefail
 
 if [ "$(id -u)" != 0 ]; then exec sudo "$0" "$@"; fi
@@ -30,6 +31,50 @@ case "${1:-info}" in
             /PPT LIMIT FAST/ {fast=$3+0}
             /PPT LIMIT SLOW/ {slow=$3+0}
             END {printf "当前功耗墙：持续 %gW · 长时 %gW · 短时爆发 %gW\n", stapm, slow, fast}' ;;
+    status)
+        # CPU：RAPL package 能量计数差分；APU 上 AMD 内核也叫 intel-rapl:0，
+        # 计数器到 max_energy_range_uj 回绕，差分为负时按量程补齐
+        rapl=$(ls -d /sys/class/powercap/*-rapl:0 2>/dev/null | head -1)
+        if [ -n "$rapl" ]; then
+            range=$(cat "$rapl/max_energy_range_uj")
+            e1=$(cat "$rapl/energy_uj"); t1=$(date +%s%N)
+            sleep 1
+            e2=$(cat "$rapl/energy_uj"); t2=$(date +%s%N)
+            cpu=$(awk -v e1="$e1" -v e2="$e2" -v r="$range" -v t1="$t1" -v t2="$t2" \
+                'BEGIN{d=e2-e1; if(d<0)d+=r; printf "%.1f", d/(t2-t1)*1000}')  # µJ/ns → W ×1000
+        else
+            cpu="?"
+        fi
+        # GPU：amdgpu hwmon 的 1 秒滑动平均；APU 上它是 SoC 的子域，
+        # 独显机器该值不在 RAPL package 内，展示为独立项
+        gpu=""
+        for h in /sys/class/hwmon/hwmon*; do
+            [ "$(cat "$h/name" 2>/dev/null)" = amdgpu ] || continue
+            [ -r "$h/power1_average" ] || continue
+            gpu=$(awk -v u="$(cat "$h/power1_average")" 'BEGIN{printf "%.1f", u/1e6}')
+            break
+        done
+        soc="SoC ${cpu}W"
+        [ -n "$gpu" ] && soc="$soc（其中 GPU ${gpu}W）"
+        [ -n "$gpu" ] || gpu="?"
+        # 电池：本机 EC 名叫 LCBT，按 TYPE=Battery 匹配兼容其他命名
+        bat=""
+        for p in /sys/class/power_supply/*/; do
+            grep -q '^POWER_SUPPLY_TYPE=Battery' "$p/uevent" 2>/dev/null || continue
+            w=$(awk -v u="$(sed -n 's/^POWER_SUPPLY_POWER_NOW=//p' "$p/uevent")" 'BEGIN{printf "%.1f", u/1e6}')
+            st=$(sed -n 's/^POWER_SUPPLY_STATUS=//p' "$p/uevent")
+            cap=$(sed -n 's/^POWER_SUPPLY_CAPACITY=//p' "$p/uevent")
+            case "$st" in
+                Discharging)    zh="放电" ;;
+                Charging)       zh="充电" ;;
+                Full)           zh="已充满" ;;
+                "Not charging") zh="未充电·限充" ;;
+                *)              zh="$st" ;;
+            esac
+            bat=$(printf ' · 电池 %.1fW %s（%s%%）' "$w" "$zh" "${cap:-?}")
+            break
+        done
+        echo "实时功耗：${soc}${bat}" ;;
     quiet) clamp 12 ;;
     stock)
         mode=$("$WMI" mode 2>/dev/null | tr -dc '0-9')
@@ -41,5 +86,5 @@ case "${1:-info}" in
         [ "$w" -ge 5 ] && [ "$w" -le 65 ] || { echo "瓦数范围 5-65" >&2; exit 1; }
         clamp "$w" ;;
     *)
-        sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//' ;;
+        sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac

@@ -19,10 +19,13 @@ sudo install -Dm755 mr-power /usr/local/bin/mr-power
 
 ```bash
 mr-power info     # 当前功耗墙：持续 XW · 长时 XW · 短时爆发 XW
+mr-power status   # 实时功耗：SoC X.XW（其中 GPU X.XW） · 电池 X.XW 放电（XX%）
 mr-power quiet    # 12W
 mr-power 20       # 20W
 mr-power stock    # 恢复机器默认
 ```
+
+`status` 的数据源：SoC 取 RAPL package 能量计数差分（1 秒采样，`/sys/class/powercap/*-rapl:0`，APU 上 AMD 内核也叫 intel-rapl；package 含核显，GPU 那一项是其中 amdgpu hwmon `power1_average` 报的 gfx 域均值）；电池按 `POWER_SUPPLY_TYPE=Battery` 匹配（本机 EC 名叫 LCBT），瓦数与状态来自 uevent。
 
 ## 注意
 
