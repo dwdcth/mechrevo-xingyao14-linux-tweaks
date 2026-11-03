@@ -35,6 +35,7 @@
 | 手动装应用图标空白（任务栏/Alt+Tab） | [docs/notes/app-icon-blank-kde.md](docs/notes/app-icon-blank-kde.md) | 文件/WM_CLASS 全对仍空白：KSycoca 是进程级缓存，`kbuildsycoca6` 后必须重启 plasmashell 与 kwin_wayland；含 KWin 脚本查 Wayland 窗口类 |
 | mechrevo-osd 排序环静默失联 | [docs/notes/mechrevo-osd-ordering-cycle.md](docs/notes/mechrevo-osd-ordering-cycle.md) | `After=graphical` + `WantedBy=multi-user` 成环，开机时 systemd **静默删启动任务**（journal 仅一条 ordering cycle）；daemon-reload 不重演启动序，改完 unit 下次重启才咬；Fn 键失灵先 grep 这个 |
 | 适配器功耗不可读 + ERAM 电池遥测 | [docs/notes/ac-adapter-power-unreadable.md](docs/notes/ac-adapter-power-unreadable.md) | AC 输出功率全链路排查（EC/DSDT/iio/typec 皆无）→ 整机口径：拔电精确/插电 calibrate 估算；ERAM 窗口（0xFEEC2300 只读 MMIO）电池字段逐项验证表 |
+| F10/F11/F12 与 Fn 互换 | [tools/fnswap](tools/fnswap/INSTALL.md) | 内核级 hwdb 改键（零守护）：单按=Insert/PrSc/Del、Fn+=F键；原始映射留档 + `--restore` 一键还原；scancode 实测与终端回显竞态/事件双流排雷见 [docs/notes/fn-key-swap.md](docs/notes/fn-key-swap.md) |
 
 ## 目录结构
 
@@ -46,7 +47,8 @@
 │   ├── xrun-rs/        # Rust NPU 推理（模型/运行库/固件经 GitHub Release 分发，见其 INSTALL.md）
 │   ├── mr-power/       # 功耗墙快捷脚本（status 分域/整机功耗，calibrate 标定其余功耗）
 │   ├── gpu-metrics/    # gpu_metrics v3.0 只读解码器（分域功耗，零依赖）
-│   └── pmf-metrics/    # PMF mailbox 直读（已禁用，事故存档，用 gpu-metrics 代替）
+│   ├── pmf-metrics/    # PMF mailbox 直读（已禁用，事故存档，用 gpu-metrics 代替）
+│   └── fnswap/         # F10/F11/F12 与 Fn 组合互换（hwdb 交互向导，--restore 一键还原）
 ├── integrations/
 │   ├── systemd/        # mechrevo-osd / mechrevo-charge / kde-lock-raise / fprintd-release
 │   ├── kde/            # 锁屏指纹 QML 补丁 + pacman hook
