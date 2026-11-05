@@ -22,6 +22,7 @@
 | 分域功耗只读解码 | [tools/gpu-metrics](tools/gpu-metrics/INSTALL.md) | amdgpu gpu_metrics v3.0 零依赖解码器（每核功率/频率/温度/C0），布局取自模块 BTF；SMU 只读铁律的由来见 [docs/notes/smu-mailbox-brick-amdgpu.md](docs/notes/smu-mailbox-brick-amdgpu.md)（用户态写 mailbox 炸机全记录） |
 | 锁屏指纹直触解锁 | [integrations/kde](integrations/kde/INSTALL.md) | 电源键=指纹二合一机型：锁屏任意时刻轻触即解锁，QML 双补丁 + pacman hook |
 | 休眠（不砖机） | [docs/hibernation.md](docs/hibernation.md) | shutdown 模式定稿，含 platform 砖机完整证据链与内核源码分析 |
+| 挂起保险丝 | [tools/suspend-guard](tools/suspend-guard/README.md) | ExecStartPre 一次性闸门(零常驻):**线程级** D 状态采样,先自动 kill 卡死的 FUSE 守护再放行入睡,杀不动则中止挂起防睡死;另识别 EC 假闭合拒挂——[睡死链](docs/notes/suspend-freeze-deadlock.md) / [假闭合循环](docs/notes/lid-stuck-suspend-loop.md) |
 | 扬声器校正 | [integrations/audio](integrations/audio/INSTALL.md) | 原厂 Nahimic 卷积 IR → EasyEffects，六套场景预设 + Mac 曲线 |
 | NPU 模型推理 | [tools/xrun-rs](tools/xrun-rs/INSTALL.md) | Rust 直调 XRT/Vitis-AI ABI 跑 Windows 效果模型（31fps 人像分割），含模型提取逆向全记录 |
 | WPS 流氓进程治理 | [integrations/wps](integrations/wps/INSTALL.md) | EverythingDaemon 永禁（曾卡死 FUSE 挂载致合盖假死）+ WPS 退出后自动清场常驻进程，[附论坛分享稿](integrations/wps/forum-post.zh.md) |
@@ -48,7 +49,8 @@
 │   ├── mr-power/       # 功耗墙快捷脚本（status 分域/整机功耗，calibrate 标定其余功耗）
 │   ├── gpu-metrics/    # gpu_metrics v3.0 只读解码器（分域功耗，零依赖）
 │   ├── pmf-metrics/    # PMF mailbox 直读（已禁用，事故存档，用 gpu-metrics 代替）
-│   └── fnswap/         # F10/F11/F12 与 Fn 组合互换（hwdb 交互向导，--restore 一键还原）
+│   ├── fnswap/         # F10/F11/F12 与 Fn 组合互换（hwdb 交互向导，--restore 一键还原）
+│   └── suspend-guard/  # 挂起保险丝：线程级 D 采样+自动清理、EC 假闭合拦截（ExecStartPre 一次性）
 ├── integrations/
 │   ├── systemd/        # mechrevo-osd / mechrevo-charge / kde-lock-raise / fprintd-release
 │   ├── kde/            # 锁屏指纹 QML 补丁 + pacman hook
