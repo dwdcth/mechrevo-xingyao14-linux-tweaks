@@ -2,7 +2,8 @@
 
 > 环境：CachyOS，KDE Plasma 6.8 Wayland，CopyQ 16.0.0，ydotool 1.0.4。验证日期：2026-10-21。
 > 同主题：[herdr-wayland-clipboard.md](herdr-wayland-clipboard.md)（贴图环境变量）、
-> [klipper-selection-history.md](klipper-selection-history.md)（历史被拖选刷屏）。
+> [klipper-selection-history.md](klipper-selection-history.md)（历史被拖选刷屏）、
+> [copyq-autostart-show-window.md](copyq-autostart-show-window.md)（自启弹主窗口）。
 
 ## 目标
 
@@ -40,7 +41,7 @@ Windows Win+V 式体验：`Meta+V` 弹历史 → 点条目 → **自动粘贴**�
 | Klipper 选区记录 | `... --key SaveSelection false`（见同主题笔记） |
 | Klipper 的 Meta+V 解绑 | `kwriteconfig6 --file kglobalshortcutsrc --group plasmashell --key show-on-mouse-pos 'none,none,在鼠标位置显示剪贴板项目'` + 重启 plasmashell |
 | Klipper 托盘 applet 移除 | 见下节"退役实验"；等效于 UI 里 系统托盘→条目→剪贴板→已禁用 |
-| CopyQ 安装/自启 | `pacman -S copyq ydotool wtype`；desktop 文件拷入 `~/.config/autostart/`（wtype 装了也没用，可省） |
+| CopyQ 安装/自启 | `pacman -S copyq ydotool wtype`；desktop 文件拷入 `~/.config/autostart/`（拷进去的 Exec 带 `show`，每次登录弹主窗口，见 [copyq-autostart-show-window.md](copyq-autostart-show-window.md)；wtype 装了也没用，可省） |
 | ydotoold 守护 | `systemctl --user enable --now ydotool.service`（ydotool 包自带用户级单元；用户需在 `input` 组） |
 | wayland-support 命令 | 从 [copyq-commands 仓库](https://github.com/hluk/copyq-commands/blob/master/commands/wayland-support.ini)取 ini，合并进 `~/.config/copyq/copyq-commands.ini`（`N\Command=` 多行 + `N\IsScript=true` + `size` 计数 +1），重启 CopyQ。**必须打本机补丁，见下节** |
 | CopyQ 的 Meta+V | CopyQ 首选项→常规→"显示/隐藏主窗口"快捷键设 Meta+V（会存成 copyq-commands.ini 里 `IsGlobalShortcut` 命令） |
