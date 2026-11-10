@@ -38,6 +38,7 @@
 | mechrevo-osd 排序环静默失联 | [docs/notes/mechrevo-osd-ordering-cycle.md](docs/notes/mechrevo-osd-ordering-cycle.md) | `After=graphical` + `WantedBy=multi-user` 成环，开机时 systemd **静默删启动任务**（journal 仅一条 ordering cycle）；daemon-reload 不重演启动序，改完 unit 下次重启才咬；Fn 键失灵先 grep 这个 |
 | 适配器功耗不可读 + ERAM 电池遥测 | [docs/notes/ac-adapter-power-unreadable.md](docs/notes/ac-adapter-power-unreadable.md) | AC 输出功率全链路排查（EC/DSDT/iio/typec 皆无）→ 整机口径：拔电精确/插电 calibrate 估算；ERAM 窗口（0xFEEC2300 只读 MMIO）电池字段逐项验证表 |
 | F10/F11/F12 与 Fn 互换 | [tools/fnswap](tools/fnswap/INSTALL.md) | 内核级 hwdb 改键（零守护）：单按=Insert/PrSc/Del、Fn+=F键；原始映射留档 + `--restore` 一键还原；scancode 实测与终端回显竞态/事件双流排雷见 [docs/notes/fn-key-swap.md](docs/notes/fn-key-swap.md) |
+| 硬盘更换/备份通用指南 | [docs/硬盘更换备份.md](docs/硬盘更换备份.md) | btrfs 快照 send/receive 迁移 + **ESP 分区 GUID/FAT 卷 ID 去重**（双盘同插撞车会引错内核进 emergency）+ 换盘检查清单 |
 
 ## 目录结构
 
