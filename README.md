@@ -16,6 +16,7 @@
 | 功能 | 组件 | 说明 |
 |---|---|---|
 | 电池充电阈值 80% | [tools/mechrevo-ctl](tools/mechrevo-ctl/INSTALL.md) | EC PMC2 端口协议（0x68/0x6C）自逆向，无标准 sysfs 节点机型可用 |
+| 托盘闪电防抖 | [tools/battery-icon-debounce](tools/battery-icon-debounce/INSTALL.md) | 限充阈值点 EC 状态位三态横跳（40s 内 Charging/Discharging/Not charging 混跳）→ UPower 轮询跟抖 → KDE 电池图标闪电随机闪烁；QML 运行时补丁 120s 持续防抖 + `NoUpgrade` 防覆盖，免重编译 |
 | FN 键全功能 OSD | [tools/mechrevo-ctl](tools/mechrevo-ctl/INSTALL.md) + [integrations/systemd](integrations/systemd/INSTALL.md) | 触控板/键盘灯/麦克风/飞行模式/Fn锁/**性能模式 Fn+X**/**刷新率 Fn+R**，事件码全表见 [docs/hardware-map.md](docs/hardware-map.md) |
 | 性能模式联动 KDE | 同上 | Fn+X 时同步 powerdevil 电源模式（官方 DBus 通道） |
 | SMU 功耗墙直调 | [tools/mr-power](tools/mr-power/INSTALL.md) | ryzenadj 包装：12W 静音档 / 任意瓦数 / 一键恢复，**status 分域功耗（CPU/GFX/NPU/封装）+ 整机（拔电精确、插电经 calibrate 标定估算）** |
