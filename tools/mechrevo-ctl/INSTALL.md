@@ -21,7 +21,7 @@ sudo install -Dm755 target/release/mechrevo-ctl /usr/local/bin/mechrevo-ctl
 |---|---|
 | `info` | 综合状态（EC/电池/模式/风扇/背光/充电阈值） |
 | `charge status` | 当前充电阈值（PMC2 通道） |
-| `charge set <T1> <T2>` | 设置并使能（T1 开始充电 / T2 上限，如 `80 100`） |
+| `charge set <T1> <T2>` | 设置并使能（**T1=停充上限**，实测电池停在 T1 不再充；T2 固定 100，如 `80 100`=养护 80%） |
 | `charge restore [T1] [T2]` | 幂等恢复（默认 80/100；电池耗尽断电 EC 会清零，开机跑一次） |
 | `kbd get` / `kbd set 0-2` | 键盘背光三档（EC 0x33） |
 | `fnlock get` / `fnlock set 0\|1` | Fn 键锁定（EC 0x32 bit1） |
@@ -31,6 +31,8 @@ sudo install -Dm755 target/release/mechrevo-ctl /usr/local/bin/mechrevo-ctl
 | `turbo` | Turbo 状态读数 |
 | `wmi <mfid> <sfid> [param]` | 原始 WMAA 调用（16进制，逆向用） |
 | `osd` | FN 键 OSD 守护（由 systemd 服务跑，见下方） |
+
+> 停在阈值附近时（如 79%/T1=80），EC 会拒绝充电且 LCBT 状态位在 `Discharging`/`Not charging` 间抖动、`POWER_NOW` 偶报瞬时大值——实际电流≈0、电量不掉，属养护模式正常行为，不是充电故障。
 
 ## 开机自启（OSD 守护 + 充电阈值恢复）
 
@@ -49,4 +51,4 @@ OSD：服务起来后按 Fn+Esc（触控板开关）应弹出 OSD 并实际开�
 
 - EC 写入经 `/dev/mem`，代码内白名单仅放行键盘背光/触控板键两个偏移；充电阈值走 PMC2 端口 0x68/0x6C 协议
 - 原理与寄存器地图：[`../../docs/hardware-map.md`](../../docs/hardware-map.md)
-- 卸载：`sudo systemctl disable --now mechrevo-osd mechrevo-charge && sudo rm /usr/local/bin/mechrevo-ctl`（EC 里已写入的充电阈值会保留，可用 `charge set 0 100` 类操作复位）
+- 卸载：`sudo systemctl disable --now mechrevo-osd mechrevo-charge && sudo rm /usr/local/bin/mechrevo-ctl`（EC 里已写入的充电阈值会保留，可用 `charge set 100 100` 解除上限）
