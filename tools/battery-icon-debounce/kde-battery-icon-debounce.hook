@@ -1,0 +1,12 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = plasma-workspace
+
+[Action]
+Description = Re-applying Mechrevo battery icon AC-plug patch (v2)...
+When = PostTransaction
+Exec = /usr/local/bin/kde-battery-icon-debounce
+Depends = bash
+Depends = python

@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+# 星耀14：KDE 托盘电池充电闪电防抖补丁 (v2)
+# 两件事缺一不可：
+#   1. qmldir 去掉 "prefer :/qt/qml/..." 行——Plasma 6 的 workspacecomponents 模块
+#      把 QML 与 AOT 字节码编译进 libworkspacecomponents.so，保留 prefer 行时 Qt6
+#      永远走内嵌 qrc 资源，磁盘上的 BatteryIcon.qml 根本不会被读取（v1 失效根因）。
+#   2. BatteryIcon.qml 主电池（batteryType 为 "" 或 "Battery"）改用 plasma-workspace
+#      自带的 org.kde.plasma.workspace.dbus 直连 UPower 全局属性 OnBattery：
+#      - BatteryControlModel::updateOverallBattery() 用 !anyDischarging 算 pluggedIn，
+#        本机 EC 在 80% 限充阈值点横跳 Charging/Discharging/Not charging，还会连续数分钟
+#        停在单态，导致 120s 定时器方案既压不住长周期翻转、又拖慢真拔插响应 2 分钟；
+#      - UPower 全局 OnBattery 直跟适配器 ACAD/online（DBus PropertiesChanged 推送），
+#        阈值点恒为 false（零闪烁、零轮询），真插拔毫秒级即时响应，蓝牙外设不受影响。
+# 所属包：plasma-workspace；卸载 = 删 hook 与本脚本 + sudo pacman -S plasma-workspace
+set -euo pipefail
+
+DIR="${BATTERY_ICON_DEBOUNCE_DIR:-/usr/lib/qt6/qml/org/kde/plasma/workspace/components}"
+QML="$DIR/BatteryIcon.qml"
+QMLDIR="$DIR/qmldir"
+MARKER='kde-battery-icon-debounce-v2'
+
+# ---- 1. qmldir: 移除 prefer 内嵌资源行（幂等）----
+if [[ -f "$QMLDIR" ]] && grep -q '^prefer ' "$QMLDIR"; then
+    cp -n "$QMLDIR" "$QMLDIR.orig-prefer" || true
+    sed -i '/^prefer /d' "$QMLDIR"
+    echo "kde-battery-icon-debounce: qmldir prefer line removed"
+fi
+
+# ---- 2. BatteryIcon.qml 补丁（幂等，兼容从 v1 升级）----
+if [[ ! -f "$QML" ]]; then
+    echo "kde-battery-icon-debounce: $QML not found, skipping" >&2
+    exit 0
+fi
+
+if grep -qF "$MARKER" "$QML"; then
+    echo "kde-battery-icon-debounce: already applied (v2)"
+    exit 0
+fi
+
+# 若磁盘上是 v1 定时器补丁，先从原版备份还原再打 v2
+if grep -qF 'plugDebounceMs' "$QML"; then
+    for bak in "$QML.orig-battery-debounce" "$QML.orig-6.8.2"; do
+        if [[ -f "$bak" ]]; then
+            cp "$bak" "$QML"
+            echo "kde-battery-icon-debounce: restored upstream base from $(basename "$bak")"
+            break
+        fi
+    done
+fi
+
+cp -n "$QML" "$QML.orig-battery-debounce" || true
+
+python3 - "$QML" <<'PYEOF'
+import sys
+
+path = sys.argv[1]
+src = open(path, encoding="utf-8").read()
+
+old_import = "import org.kde.kirigami as Kirigami\n"
+new_import = (
+    "import org.kde.kirigami as Kirigami\n"
+    "import org.kde.plasma.workspace.dbus as DBus\n"
+)
+
+old_props = """    property string powerProfileIconName: ""
+    property bool preferSymbolic: false"""
+
+new_props = """    property string powerProfileIconName: ""
+    property bool preferSymbolic: false
+
+    // ==== 星耀14 局部补丁 (kde-battery-icon-debounce-v2): 主电池闪电直绑 UPower.OnBattery ====
+    // BatteryControlModel 用 !anyDischarging 覆盖 pluggedIn，导致本机 EC 在 80% 阈值点
+    // 横跳 Charging/Discharging/Not charging 时托盘闪电跟着闪烁。改由 UPower 全局
+    // OnBattery（跟适配器 ACAD/online 走，DBus 信号推送）驱动主电池图标：阈值点零抖动、
+    // 真插拔即时响应；鼠标/耳机等外设电池保持原 pluggedIn 逻辑不变。
+    property int upowerBusType: DBus.BusType.System
+
+    DBus.Properties {
+        id: upowerProps
+        busType: root.upowerBusType
+        service: "org.freedesktop.UPower"
+        path: "/org/freedesktop/UPower"
+        iface: "org.freedesktop.UPower"
+    }
+
+    DBus.DBusServiceWatcher {
+        busType: root.upowerBusType
+        watchedService: "org.freedesktop.UPower"
+        onRegisteredChanged: {
+            if (registered) {
+                upowerProps.updateAll();
+            }
+        }
+    }
+
+    readonly property bool effectivePluggedIn: {
+        if (root.batteryType === "" || root.batteryType === "Battery") {
+            const onBattery = upowerProps.properties.OnBattery;
+            if (onBattery !== undefined) {
+                return !Boolean(onBattery);
+            }
+        }
+        return root.pluggedIn;
+    }
+    // ==== 补丁结束 ===="""
+
+old_icon = """        source: (root.hasBattery ? fillElement(root.percent) : "battery-missing") + (root.preferSymbolic ? "-symbolic" : "")
+        visible: !otherBatteriesIcon.visible
+        active: root.active
+
+        function fillElement(p: int): string {"""
+
+new_icon = """        source: (root.hasBattery ? fillElement(root.percent, root.effectivePluggedIn) : "battery-missing") + (root.preferSymbolic ? "-symbolic" : "")
+        visible: !otherBatteriesIcon.visible
+        active: root.active
+
+        function fillElement(p: int, isPlugged: bool): string {"""
+
+old_plug = """            if (root.pluggedIn) {
+                name += "-charging";
+            }"""
+
+new_plug = """            if (isPlugged) {
+                name += "-charging";
+            }"""
+
+for label, needle in [
+    ("import", old_import),
+    ("props", old_props),
+    ("icon", old_icon),
+    ("pluggedIn", old_plug),
+]:
+    if needle not in src:
+        print(
+            f"kde-battery-icon-debounce: '{label}' pattern not found - upstream QML changed, patch NOT applied",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+src = src.replace(old_import, new_import, 1)
+src = src.replace(old_props, new_props, 1)
+src = src.replace(old_icon, new_icon, 1)
+src = src.replace(old_plug, new_plug, 1)
+
+open(path, "w", encoding="utf-8").write(src)
+print("kde-battery-icon-debounce: BatteryIcon.qml patched (v2)")
+PYEOF

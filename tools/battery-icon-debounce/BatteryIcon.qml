@@ -1,12 +1,14 @@
 /*
     SPDX-FileCopyrightText: 2011 Viranch Mehta <viranch.mehta@gmail.com>
     SPDX-FileCopyrightText: 2013 Kai Uwe Broulik <kde@privat.broulik.de>
+
     SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
 import QtQuick
 
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.workspace.dbus as DBus
 
 Item {
     id: root
@@ -20,33 +22,39 @@ Item {
     property string powerProfileIconName: ""
     property bool preferSymbolic: false
 
-    // ==== 星耀14 局部补丁:pluggedIn 防抖(托盘闪电随机闪烁) ====
-    // 本机 EC 在充电阈值点(T1=80%)每几秒横跳电池状态位(实测 40s 内
-    // Charging/Discharging/Not charging = 13/25/2 次),UPower 30s 轮询跟着抖
-    // → 本组件 pluggedIn 抖 → "-charging" 图标随机闪烁(电量实际纹丝不动)。
-    // 规则:新状态须持续 plugDebounceMs 才采纳;首个状态立即采纳,不拖会话启动。
-    // 证据链与排障背景见仓库 docs/notes/battery_analysis.md
-    property int plugDebounceMs: 120000
-    property bool stablePluggedIn: false
-    property bool plugSynced: false
-    Timer {
-        id: plugDebounce
-        interval: root.plugDebounceMs
-        onTriggered: root.stablePluggedIn = root.pluggedIn
+    // ==== 星耀14 局部补丁 (kde-battery-icon-debounce-v2): 主电池闪电直绑 UPower.OnBattery ====
+    // BatteryControlModel 用 !anyDischarging 覆盖 pluggedIn，导致本机 EC 在 80% 阈值点
+    // 横跳 Charging/Discharging/Not charging 时托盘闪电跟着闪烁。改由 UPower 全局
+    // OnBattery（跟适配器 ACAD/online 走，DBus 信号推送）驱动主电池图标：阈值点零抖动、
+    // 真插拔即时响应；鼠标/耳机等外设电池保持原 pluggedIn 逻辑不变。
+    property int upowerBusType: DBus.BusType.System
+
+    DBus.Properties {
+        id: upowerProps
+        busType: root.upowerBusType
+        service: "org.freedesktop.UPower"
+        path: "/org/freedesktop/UPower"
+        iface: "org.freedesktop.UPower"
     }
-    onPluggedInChanged: {
-        if (!plugSynced) {
-            stablePluggedIn = pluggedIn;
-            plugSynced = true;
-        } else {
-            plugDebounce.restart();
+
+    DBus.DBusServiceWatcher {
+        busType: root.upowerBusType
+        watchedService: "org.freedesktop.UPower"
+        onRegisteredChanged: {
+            if (registered) {
+                upowerProps.updateAll();
+            }
         }
     }
-    Component.onCompleted: {
-        if (!plugSynced && pluggedIn) {
-            stablePluggedIn = true;
-            plugSynced = true;
+
+    readonly property bool effectivePluggedIn: {
+        if (root.batteryType === "" || root.batteryType === "Battery") {
+            const onBattery = upowerProps.properties.OnBattery;
+            if (onBattery !== undefined) {
+                return !Boolean(onBattery);
+            }
         }
+        return root.pluggedIn;
     }
     // ==== 补丁结束 ====
 
@@ -55,11 +63,11 @@ Item {
     // "powerProfileIconName" to something other than an empty string).
     Kirigami.Icon {
         anchors.fill: parent
-        source: (root.hasBattery ? fillElement(root.percent) : "battery-missing") + (root.preferSymbolic ? "-symbolic" : "")
+        source: (root.hasBattery ? fillElement(root.percent, root.effectivePluggedIn) : "battery-missing") + (root.preferSymbolic ? "-symbolic" : "")
         visible: !otherBatteriesIcon.visible
         active: root.active
 
-        function fillElement(p: int): string {
+        function fillElement(p: int, isPlugged: bool): string {
             // Don't show the battery icon when fully charged and plugged in;
             // it adds no value here. Only show the power profile icon
             if (root.isSomehowFullyCharged && root.powerProfileIconName) {
@@ -91,7 +99,7 @@ Item {
                 name = "battery-000";
             }
 
-            if (root.stablePluggedIn) {
+            if (isPlugged) {
                 name += "-charging";
             }
 
