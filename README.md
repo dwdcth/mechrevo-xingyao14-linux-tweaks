@@ -24,7 +24,7 @@
 | 锁屏指纹直触解锁 | [integrations/kde](integrations/kde/INSTALL.md) | 电源键=指纹二合一机型：锁屏任意时刻轻触即解锁，QML 双补丁 + pacman hook |
 | 休眠（不砖机） | [docs/hibernation.md](docs/hibernation.md) | shutdown 模式定稿，含 platform 砖机完整证据链与内核源码分析 |
 | 挂起保险丝 | [tools/suspend-guard](tools/suspend-guard/README.md) | ExecStartPre 一次性闸门(零常驻):**线程级** D 状态采样,先自动 kill 卡死的 FUSE 守护再放行入睡,杀不动则中止挂起防睡死;另识别 EC 假闭合拒挂——[睡死链](docs/notes/suspend-freeze-deadlock.md) / [假闭合循环](docs/notes/lid-stuck-suspend-loop.md) |
-| 扬声器校正 | [integrations/audio](integrations/audio/INSTALL.md) | 原厂 Nahimic 卷积 IR → EasyEffects，六套场景预设 + Mac 曲线 |
+| 扬声器校正与双向降噪 | [integrations/audio](integrations/audio/INSTALL.md) | 原厂 32-bit 无损 Nahimic FIR → EasyEffects 8.x：五套超越原版场景预设（全能均衡/音乐/观影/通话/游戏，含虚拟低音/消齿音/防拍边/零削波高响度）+ 双向 DeepFilterNet AI 降噪 |
 | NPU 模型推理 | [tools/xrun-rs](tools/xrun-rs/INSTALL.md) | Rust 直调 XRT/Vitis-AI ABI 跑 Windows 效果模型（31fps 人像分割），含模型提取逆向全记录 |
 | WPS 流氓进程治理 | [integrations/wps](integrations/wps/INSTALL.md) | EverythingDaemon 永禁（曾卡死 FUSE 挂载致合盖假死）+ WPS 退出后自动清场常驻进程，[附论坛分享稿](integrations/wps/forum-post.zh.md) |
 | KDE 日历中国节假日 | [integrations/kde-calendar](integrations/kde-calendar/INSTALL.md) | 用户级数据覆盖（数据编译在 libKF6Holidays 内）+ 去英文化 + 补班红点，qmldir prefer 坑与 pacman hook 全记录 |

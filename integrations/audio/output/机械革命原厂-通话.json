@@ -1,0 +1,273 @@
+{
+  "output": {
+    "blocklist": [],
+    "plugins_order": [
+      "filter#0",
+      "deepfilternet#0",
+      "convolver#0",
+      "equalizer#0",
+      "deesser#0",
+      "multiband_compressor#0",
+      "limiter#0"
+    ],
+    "filter#0": {
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": 0.0,
+      "frequency": 115.0,
+      "width": 4.0,
+      "quality": 0.0,
+      "gain": 0.0,
+      "balance": 0.0,
+      "type": "High-pass",
+      "mode": "RLC (BT)",
+      "equal-mode": "IIR",
+      "slope": "x2"
+    },
+    "deepfilternet#0": {
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": 0.0,
+      "attenuation-limit": 18.0,
+      "min-processing-threshold": -12.0,
+      "max-erb-processing-threshold": 30.0,
+      "max-df-processing-threshold": 30.0,
+      "min-processing-buffer": 0,
+      "post-filter-beta": 0.01
+    },
+    "convolver#0": {
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": 0.0,
+      "kernel-name": "mechrevo-star14-nahimic-raw-f32",
+      "ir-width": 100,
+      "autogain": false
+    },
+    "equalizer#0": {
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": 0.0,
+      "mode": "IIR",
+      "decramp": "Off",
+      "split-channels": false,
+      "balance": 0.0,
+      "pitch-left": 1.0,
+      "pitch-right": 1.0,
+      "num-bands": 4,
+      "left": {
+        "band0": {
+          "type": "Bell",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": 1.5,
+          "frequency": 250.0,
+          "q": 2.02,
+          "width": 124.0
+        },
+        "band1": {
+          "type": "Bell",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": -3.0,
+          "frequency": 1250.0,
+          "q": 2.0,
+          "width": 625.0
+        },
+        "band2": {
+          "type": "Bell",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": 7.5,
+          "frequency": 1800.0,
+          "q": 0.48,
+          "width": 3700.0
+        },
+        "band3": {
+          "type": "Hi-shelf",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": 2.5,
+          "frequency": 8000.0,
+          "q": 0.707,
+          "width": 4000.0
+        }
+      },
+      "right": {
+        "band0": {
+          "type": "Bell",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": 1.5,
+          "frequency": 250.0,
+          "q": 2.02,
+          "width": 124.0
+        },
+        "band1": {
+          "type": "Bell",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": -3.0,
+          "frequency": 1250.0,
+          "q": 2.0,
+          "width": 625.0
+        },
+        "band2": {
+          "type": "Bell",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": 7.5,
+          "frequency": 1800.0,
+          "q": 0.48,
+          "width": 3700.0
+        },
+        "band3": {
+          "type": "Hi-shelf",
+          "mode": "RLC (BT)",
+          "slope": "x1",
+          "solo": false,
+          "mute": false,
+          "gain": 2.5,
+          "frequency": 8000.0,
+          "q": 0.707,
+          "width": 4000.0
+        }
+      }
+    },
+    "deesser#0": {
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": 0.0,
+      "detection": "RMS",
+      "mode": "Split",
+      "threshold": -22.0,
+      "ratio": 3.5,
+      "laxity": 15,
+      "makeup": 0.0,
+      "f1-freq": 5500.0,
+      "f2-freq": 7500.0,
+      "f1-level": 0.0,
+      "f2-level": 4.0,
+      "f2-q": 1.5,
+      "sc-listen": false
+    },
+    "multiband_compressor#0": {
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": 8.5,
+      "dry": -100.0,
+      "wet": 0.0,
+      "compressor-mode": "Modern",
+      "envelope-boost": "None",
+      "stereo-split": false,
+      "band0": {
+        "compressor-enable": true,
+        "mute": false,
+        "solo": false,
+        "attack-threshold": -24.0,
+        "attack-time": 8.0,
+        "release-threshold": -30.0,
+        "release-time": 140.0,
+        "ratio": 4.0,
+        "knee": -6.0,
+        "makeup": 4.0,
+        "compression-mode": "Downward"
+      },
+      "band1": {
+        "enable-band": true,
+        "split-frequency": 200.0,
+        "compressor-enable": true,
+        "mute": false,
+        "solo": false,
+        "attack-threshold": -24.0,
+        "attack-time": 8.0,
+        "release-threshold": -30.0,
+        "release-time": 70.0,
+        "ratio": 3.5,
+        "knee": -6.0,
+        "makeup": 7.0,
+        "compression-mode": "Downward"
+      },
+      "band2": {
+        "enable-band": true,
+        "split-frequency": 900.0,
+        "compressor-enable": true,
+        "mute": false,
+        "solo": false,
+        "attack-threshold": -34.0,
+        "attack-time": 8.0,
+        "release-threshold": -40.0,
+        "release-time": 50.0,
+        "ratio": 3.2,
+        "knee": -6.0,
+        "makeup": 13.5,
+        "compression-mode": "Downward"
+      },
+      "band3": {
+        "enable-band": true,
+        "split-frequency": 4500.0,
+        "compressor-enable": true,
+        "mute": false,
+        "solo": false,
+        "attack-threshold": -24.0,
+        "attack-time": 6.0,
+        "release-threshold": -30.0,
+        "release-time": 50.0,
+        "ratio": 2.8,
+        "knee": -6.0,
+        "makeup": 6.0,
+        "compression-mode": "Downward"
+      },
+      "band4": {
+        "enable-band": false,
+        "compressor-enable": false,
+        "mute": false,
+        "solo": false
+      },
+      "band5": {
+        "enable-band": false,
+        "compressor-enable": false,
+        "mute": false,
+        "solo": false
+      },
+      "band6": {
+        "enable-band": false,
+        "compressor-enable": false,
+        "mute": false,
+        "solo": false
+      },
+      "band7": {
+        "enable-band": false,
+        "compressor-enable": false,
+        "mute": false,
+        "solo": false
+      }
+    },
+    "limiter#0": {
+      "bypass": false,
+      "input-gain": 0.0,
+      "output-gain": 0.0,
+      "mode": "Herm Thin",
+      "oversampling": "Half x2(2L)",
+      "lookahead": 5.0,
+      "attack": 1.0,
+      "release": 25.0,
+      "threshold": -1.0,
+      "alr": false,
+      "gain-boost": false
+    }
+  }
+}
