@@ -29,7 +29,7 @@
 | WPS 流氓进程治理 | [integrations/wps](integrations/wps/INSTALL.md) | EverythingDaemon 永禁（曾卡死 FUSE 挂载致合盖假死）+ WPS 退出后自动清场常驻进程，[附论坛分享稿](integrations/wps/forum-post.zh.md) |
 | KDE 日历中国节假日 | [integrations/kde-calendar](integrations/kde-calendar/INSTALL.md) | 用户级数据覆盖（数据编译在 libKF6Holidays 内）+ 去英文化 + 补班红点，qmldir prefer 坑与 pacman hook 全记录 |
 | NPU 语音听写（机身 AI 键） | [integrations/asr](integrations/asr/INSTALL.md) | flm + voxtype：AI 键(KEY_F23)说话→简体进光标；Wayland CJK 输出/模型下载排雷记见 [docs/notes/asr-dictation.md](docs/notes/asr-dictation.md) |
-| 微信沙箱双向修复 | [integrations/wechat](integrations/wechat/INSTALL.md) | wechat-universal-bwrap 发文件（binds.list）+ 收图（symlink），沙箱死路径根因与修法 |
+| 微信沙箱三项修复 | [integrations/wechat](integrations/wechat/INSTALL.md) | `wechat-universal-bwrap` 发文件（binds.list）+ 收图（symlink），沙箱死路径根因与修法；**升 4.1.13.29 后**截图/显隐快捷键失效并误报冲突——门户登记应用 ID 找不到 `wechat.desktop`，补别名即愈，[排查全记录](docs/notes/wechat-bwrap-global-shortcuts.md) |
 | XWayland 全屏黑屏排障 | [docs/notes/xwayland-scanout-black.md](docs/notes/xwayland-scanout-black.md) | AMD 直扫 + 应用自行缩放：截图正常肉眼黑，wmctrl 验证法与根治 |
 | herdr/SSH 会话贴图失败 | [docs/notes/herdr-wayland-clipboard.md](docs/notes/herdr-wayland-clipboard.md) | SSH 启动的 herdr server 继承不到 WAYLAND_DISPLAY，Claude Code 贴图静默失败；bashrc 从 systemd 用户环境找回变量 |
 | KDE 剪贴板历史被拖选刷屏 | [docs/notes/klipper-selection-history.md](docs/notes/klipper-selection-history.md) | SaveSelection 把拖选的每个中间态记成一条历史；关闭选区记录，附 klipperrc 开关速查 |
@@ -61,7 +61,7 @@
 │   ├── kde-calendar/   # KDE 时钟日历：中国节假日数据覆盖 + 补班红点
 │   ├── audio/          # EasyEffects 预设与 IRS
 │   ├── asr/            # 机身 AI 键语音听写（flm + voxtype 服务与配置）
-│   ├── wechat/         # 微信 bwrap 沙箱发文件/收图双向修复
+│   ├── wechat/         # 微信 bwrap 沙箱：发文件/收图/全局快捷键（wechat.desktop 别名）
 │   └── wps/            # WPS 流氓进程治理（一键脚本 + 论坛分享稿）
 └── NOTICE.md        # 厂商衍生素材（IRS/模型/运行库/固件）的来源与再分发说明
 ```

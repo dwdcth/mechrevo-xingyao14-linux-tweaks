@@ -1,0 +1,14 @@
+# Alias for wechat-universal: WeChat 4.1.13.29+ registers itself with the desktop portal
+# (org.freedesktop.host.portal.Registry.Register) under its hardcoded app id "wechat",
+# which requires a desktop file with that exact basename to exist. Without it the
+# portal answers "App info not found for 'wechat'" and WeChat never registers its
+# global shortcuts (Alt+A screenshot, Ctrl+Alt+W show/hide).
+# Same content as wechat-universal-alias-icon.desktop shipped in wechat-universal-bwrap
+# (installed only when the package is built with WECHAT_ALIAS_ICON=yes).
+[Desktop Entry]
+Type=Application
+Name=WeChat
+Exec=/usr/lib/wechat-universal/start.sh %u
+Icon=wechat-universal
+NoDisplay=true
+X-KDE-AliasFor=wechat-universal
