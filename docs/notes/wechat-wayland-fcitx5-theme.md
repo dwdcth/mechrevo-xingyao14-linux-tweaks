@@ -384,13 +384,16 @@ if __name__ == "__main__":
 mkdir -p ~/.local/share/fcitx5/themes/
 cp -r integrations/wechat/fcitx5-theme/wechat-default ~/.local/share/fcitx5/themes/
 
-# 2. 配置微信与系统的主题绑定（注意：不能带 [ClassicUI] 节头）
-printf 'Font=Sans 10\nTheme=wechat-default\n' > ~/.config/fcitx5/conf/classicui.conf
+# 2. 配置微信与系统的主题绑定（注意：不能带 [ClassicUI] 节头；关闭 UseDarkTheme 防止深色模式自动切走）
+printf 'Font=Sans 10\nTheme=wechat-default\nDarkTheme=wechat-default\nPreferTextIcon=False\nUseAccentColor=True\nUseDarkTheme=False\n' > ~/.config/fcitx5/conf/classicui.conf
+
+# 3. 通过 D-Bus 通知 fcitx5 守护进程热重载 classicui（让其它应用也立刻同步）
+busctl --user call org.fcitx.Fcitx5 /controller org.fcitx.Fcitx.Controller1 ReloadAddonConfig s "classicui"
 ```
 
 ### 验证与热重载
 
-- `fcitx5-qt` 内部维护了 `QFileSystemWatcher`，当检测到 `theme.conf` 变动时会立即热重载。
+- `fcitx5-qt` 内部维护了 `QFileSystemWatcher`，当检测到 `theme.conf` 或 `classicui.conf` 变动时会立即热重载；系统侧通过 `ReloadAddonConfig` 即时生效。
 - **无需重启微信**，在微信输入框内再次打字即可看到即时生效的直角蓝边纯白面板。
 
 ### 回退
@@ -398,6 +401,7 @@ printf 'Font=Sans 10\nTheme=wechat-default\n' > ~/.config/fcitx5/conf/classicui.
 ```bash
 rm -rf ~/.local/share/fcitx5/themes/wechat-default
 rm ~/.config/fcitx5/conf/classicui.conf
+busctl --user call org.fcitx.Fcitx5 /controller org.fcitx.Fcitx.Controller1 ReloadAddonConfig s "classicui"
 ```
 
 ---
@@ -412,3 +416,5 @@ rm ~/.config/fcitx5/conf/classicui.conf
    当缩放倍率非整数（如 1.6x）时，Qt 强制开启的双线性平滑插值会把九宫格边框色渗入紧邻的 1 像素中心。九宫格的中心取样区必须预留足够的单色安全距离（至少大于 4 像素）。
 4. **看图要逐像素量化，不要相信第一印象**：
    排查初期曾把直角面板误判为圆角淡阴影，导致做出了南辕北辙的线框皮肤。通过 Python 读取局部像素 RGB 阵列能瞬间给出确切的硬边框坐标与背景色值。
+5. **`fcitx5-wetypex` 修改外观设置会覆写 `classicui.conf`**：
+   微信输入法引擎（`fcitx5-wetypex`）默认以 `enableWeTypeTheme=true` 编译。当通过 `fcitx5-wetypex-settings` 首次保存或改动 `theme_mode` / 字号并触发 `ReloadAddonConfig("wetypex")` 时，`wetypex.so` 会把共用的 `~/.config/fcitx5/conf/classicui.conf` 覆写为 `Theme=wetypex-light`、`DarkTheme=wetypex-dark`、`UseDarkTheme=True`、`UseAccentColor=False`，导致微信和其它程序全变成绿白圆角 `wetypex-light` 皮肤。只要之后不在微信输入法设置里改动主题/字号，正常重启不会再覆写；若不慎被覆写，按第五节重新写入 `classicui.conf` 并执行 `busctl ... ReloadAddonConfig s "classicui"` 即可立即恢复。

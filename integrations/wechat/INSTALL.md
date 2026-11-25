@@ -88,11 +88,15 @@ desktop-file-validate ~/.local/share/applications/wechat.desktop
 mkdir -p ~/.local/share/fcitx5/themes/
 cp -r integrations/wechat/fcitx5-theme/wechat-default ~/.local/share/fcitx5/themes/
 
-# 2. 写入全局主题指定（注意：微信内嵌客户端只读无节头的根键，切勿加 [ClassicUI] 节头）
-printf 'Font=Sans 10\nTheme=wechat-default\n' > ~/.config/fcitx5/conf/classicui.conf
+# 2. 写入全局主题指定并通知 fcitx5 热重载
+# 注意：微信内嵌客户端只读无节头的根键，切勿加 [ClassicUI] 节头；同时锁定 DarkTheme 并关闭 UseDarkTheme
+printf 'Font=Sans 10\nTheme=wechat-default\nDarkTheme=wechat-default\nPreferTextIcon=False\nUseAccentColor=True\nUseDarkTheme=False\n' > ~/.config/fcitx5/conf/classicui.conf
+busctl --user call org.fcitx.Fcitx5 /controller org.fcitx.Fcitx.Controller1 ReloadAddonConfig s "classicui"
 ```
 
 **无需重启微信**：`fcitx5-qt` 监听主题文件，修改后即时热重载生效。在微信输入框打字即可看到 1:1 还原的白底蓝框实心高亮面板。
+
+> **注意 `fcitx5-wetypex` 覆写问题**：如果装了微信输入法引擎（`fcitx5-wetypex`），在 `fcitx5-wetypex-settings` 里改动主题或字号会触发插件覆写 `classicui.conf` 为 `wetypex-light`。若发现候选框突然变成绿白圆角样式，重跑上面两行命令即可立即恢复。
 
 ## 验证
 
