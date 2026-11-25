@@ -1,12 +1,13 @@
-# 微信（wechat-universal-bwrap）沙箱修复：发文件 / 收图片 / 全局快捷键
+# 微信（wechat-universal-bwrap）沙箱与 Wayland 修复：发文件 / 收图片 / 全局快捷键 / 输入法皮肤
 
-Arch 系 AUR **`wechat-universal-bwrap`**（官方 Linux 微信 + bwrap 沙箱）的三个故障。前两个（4.1.13.26-1 验证）根因相同：**沙箱把数据目录映射为家目录，沙箱内外路径互为死区**；第三个（4.1.13.29-1 验证）是另一类根因——**门户登记应用 ID 时找不到 `wechat.desktop`**。
+Arch 系 AUR **`wechat-universal-bwrap`**（官方 Linux 微信 + bwrap 沙箱）的四个故障。前两个（4.1.13.26-1 验证）根因相同：**沙箱把数据目录映射为家目录，沙箱内外路径互为死区**；后两个（4.1.13.29-1 验证）源于默认走原生 Wayland 后的外部接口与内嵌客户端差异。
 
 | 修复 | 症状 | 验证的包版本 |
 |---|---|---|
 | A | 往聊天窗发不出文件 | `wechat-universal-bwrap` 4.1.13.26-1 |
 | B | 微信里复制的图片贴到别的应用报错 | `wechat-universal-bwrap` 4.1.13.26-1 |
 | C | 截图 / 显隐快捷键失灵，设置里提示冲突 | `wechat-universal-bwrap` 4.1.13.29-1 |
+| D | 输入法候选框样式走样（死灰/线框/底色泛蓝） | `wechat-universal-bwrap` 4.1.13.29-1 |
 
 ## 问题与根因
 
@@ -74,12 +75,32 @@ desktop-file-validate ~/.local/share/applications/wechat.desktop
 
 然后**完全退出微信再启动**。首次会弹出 KDE 的「全局快捷键请求」对话框（WeChat 想要注册以下 2 个快捷键），**25 秒内点「确定」**——微信那边是 25 秒超时的阻塞调用，错过就再重启一次微信。确认一次后绑定记在 `~/.config/kglobalshortcutsrc` 的 `[wechat]` 下。
 
+## 修复 D：输入法候选窗变样 / 泛蓝渐变 —— 部署 wechat-default 皮肤
+
+升级到 **4.1.13.29-1** 原生 Wayland 后，微信内嵌了静态链接的 `fcitx5-qt` 客户端自绘浮动候选窗。由于内嵌客户端不读 KDE 强调色（导致默认主题退化为死灰）、不支持 SVG 图标，且在 1.6x 高分屏下无图纯色模式会因双线性插值渗色出现泛蓝晕影。
+
+根因分析、图形学机理与皮肤编写指南见完整笔记 [docs/notes/wechat-wayland-fcitx5-theme.md](../../docs/notes/wechat-wayland-fcitx5-theme.md)。
+
+部署预制好的 `wechat-default` 皮肤（直角 2px 蓝边、大白芯缓冲区消除渗色、实心蓝底白字、PNG 翻页图标）：
+
+```bash
+# 1. 复制皮肤目录
+mkdir -p ~/.local/share/fcitx5/themes/
+cp -r integrations/wechat/fcitx5-theme/wechat-default ~/.local/share/fcitx5/themes/
+
+# 2. 写入全局主题指定（注意：微信内嵌客户端只读无节头的根键，切勿加 [ClassicUI] 节头）
+printf 'Font=Sans 10\nTheme=wechat-default\n' > ~/.config/fcitx5/conf/classicui.conf
+```
+
+**无需重启微信**：`fcitx5-qt` 监听主题文件，修改后即时热重载生效。在微信输入框打字即可看到 1:1 还原的白底蓝框实心高亮面板。
+
 ## 验证
 
 - 发送：拖一个 `~/下载` 里的文件进聊天窗，正常发出
 - 接收：微信里复制图片 → 粘贴进 LibreOffice，出图不报错
 - 剪贴板诊断：`wl-paste --list-types`（应见 `image/png` 与 `text/uri-list` 并存）
 - 快捷键（修复 C）：焦点在别的窗口时按 `Alt+A` 出截图框、`Ctrl+Alt+W` 切出/收起主窗口；`grep -A3 '^\[wechat\]' ~/.config/kglobalshortcutsrc` 能看到两条绑定
+- 输入法（修复 D）：微信内输入候选框呈直角纯白底色、2px `#3daee9` 蓝色边框、首选词实心蓝底白字、翻页小三角显示正常，无任何圆角阴影或蓝色渐变晕光
 
 ## 卸载 / 复发
 
@@ -87,6 +108,7 @@ desktop-file-validate ~/.local/share/applications/wechat.desktop
 - 微信重装/换包/`WeChat_Data` 结构变化后修复 B 会失效（symlink 悬空），重建该 symlink 即可
 - 微信 temp 文件（RWTemp）生命周期短，复制图片后尽快粘贴；快照数据在剪贴板里不受影响
 - 删掉 `~/.local/share/applications/wechat.desktop` → 重启微信后修复 C 回退（快捷键再次失效并误报冲突）
+- 删掉 `~/.local/share/fcitx5/themes/wechat-default` 与 `~/.config/fcitx5/conf/classicui.conf` → 修复 D 回退
 - **换用官方或非 bwrap 打包版本时务必先删这个用户级文件**：它带 `NoDisplay=true` 且用户级优先，会盖住对方自己的 `wechat.desktop` 菜单项
 
 ## 边界
